@@ -1,0 +1,116 @@
+.admin-day {
+  margin-bottom: 1.5rem;
+}
+
+.admin-day h2 {
+  font-size: 1.2rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.3rem;
+}
+
+.admin-meal {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.admin-meal-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 1.2fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.93rem;
+}
+
+.locked-tag {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.meal-editor {
+  border-top: 1px solid var(--line);
+  padding: 0.9rem;
+}
+
+.times {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.dish-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 400;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+}
+
+.pick input {
+  width: auto;
+}
+
+.pick.on {
+  border-color: var(--slate);
+  background: #e9ede9;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.add-dish {
+  max-width: 560px;
+  margin-top: 2rem;
+}
+
+.add-dish table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.add-dish th,
+.add-dish td {
+  text-align: left;
+  padding: 0.35rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.93rem;
+}
+
+.dish-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr 80px auto;
+  gap: 0.5rem;
+}
+
+@media (max-width: 760px) {
+  .admin-meal-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .admin-meal-row .menu-list,
+  .admin-meal-row .muted {
+    grid-column: 1 / -1;
+  }
+
+  .times,
+  .dish-form {
+    grid-template-columns: 1fr;
+  }
+}
