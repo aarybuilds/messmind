@@ -4,6 +4,7 @@ const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const mealMarkRoutes = require("./routes/mealMarks");
 const predictionRoutes = require("./routes/predictions");
+const staffRoutes = require("./routes/staff");
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/meal-marks", mealMarkRoutes);
 app.use("/api/predictions", predictionRoutes);
+app.use("/api/staff", staffRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: "Not found" });

@@ -55,6 +55,12 @@ npm install
 npm run dev
 ```
 
+To show the live service panel at any time of day, put the next meal in service:
+
+```bash
+cd backend && npm run demo:serve     # service started 18 minutes ago
+```
+
 Backend tests use a separate database:
 
 ```bash
@@ -97,5 +103,5 @@ Requirements and design are final. Implementation in progress.
 | 1. Schema and authentication | Done |
 | 2. Meal marking | Done |
 | 3. Prediction engine | Done |
-| 4. Staff dashboard and quantity recommendation | Next |
-| 5. Waste logging and recalibration | Planned |
+| 4. Staff dashboard and quantity recommendation | Done |
+| 5. Waste logging and recalibration | Next |

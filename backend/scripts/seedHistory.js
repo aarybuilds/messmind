@@ -118,32 +118,36 @@ async function main() {
     await recalibrateSlot(s.slot_id);
   }
 
-  // declarations for upcoming slots that are still open
+  // declarations for meals that haven't been served yet
   await ensureUpcomingSlots(7);
   await refreshSlotStates();
-  const { rows: openSlots } = await pool.query(
+  const { rows: upcomingSlots } = await pool.query(
     `SELECT m.slot_id, m.slot_type, EXTRACT(DOW FROM m.slot_date)::int AS dow, array_agg(d.name) AS menu,
-            EXTRACT(EPOCH FROM m.marking_closes_at - NOW()) / 3600 AS hours_left
+            EXTRACT(EPOCH FROM m.marking_closes_at - NOW()) / 3600 AS hours_left,
+            m.marking_closes_at
      FROM meal_slots m
      JOIN slot_dishes sd ON sd.slot_id = m.slot_id
      JOIN dishes d ON d.dish_id = sd.dish_id
-     WHERE m.state = 'marking_open'
+     WHERE m.service_ends_at > NOW()
      GROUP BY m.slot_id`
   );
   const upcoming = [];
-  for (const slot of openSlots) {
+  for (const slot of upcomingSlots) {
     for (const s of students) {
       if (s.email === DEMO_STUDENT) continue;
       const h = habits.get(s.user_id);
       // most people mark close to the cut-off, so far-away slots have fewer marks so far
-      const soFar = slot.hours_left < 12 ? 0.9 : slot.hours_left < 36 ? 0.5 : 0.2;
+      // closed but not yet served: everyone who was going to mark has marked
+      const soFar = slot.hours_left <= 0 ? 1 : slot.hours_left < 12 ? 0.9 : slot.hours_left < 36 ? 0.5 : 0.2;
       if (rand() < h.markProb * soFar) {
         const p = eatChance(h, slot.slot_type, slot.dow, slot.menu);
-        upcoming.push([s.user_id, slot.slot_id, rand() < p]);
+        const latest = Math.min(Date.now(), slot.marking_closes_at.getTime());
+        const markedAt = new Date(latest - between(0.2, 12) * 3600 * 1000);
+        upcoming.push([s.user_id, slot.slot_id, rand() < p, markedAt]);
       }
     }
   }
-  await bulkInsert("meal_marks", ["user_id", "slot_id", "intent_to_eat"], ["int", "int", "bool"], upcoming);
+  await bulkInsert("meal_marks", ["user_id", "slot_id", "intent_to_eat", "marked_at"], ["int", "int", "bool", "timestamptz"], upcoming);
 
   console.log(
     `Seeded ${pastSlots.length} past slots, ${marks.length} past declarations, ` +

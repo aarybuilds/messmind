@@ -31,6 +31,8 @@ async function segmentRates(slot, asOf, defaults, db = pool) {
        FROM meal_slots
        WHERE slot_type = $1 AND recalibrated_at IS NOT NULL
          AND service_ends_at <= COALESCE($2::timestamptz, NOW())
+         -- only meals where we know who actually came
+         AND EXISTS (SELECT 1 FROM attendance_records a WHERE a.slot_id = meal_slots.slot_id)
      )
      SELECT d.dow,
        COUNT(*) FILTER (WHERE mm.intent_to_eat)                                 AS yes_total,
@@ -184,4 +186,59 @@ async function saveForecast(f, db = pool) {
   }
 }
 
-module.exports = { loadSettings, segmentRates, forecastSlot, completedSlotCount };
+// Forecast as stored, in the same shape forecastSlot returns
+async function storedForecast(slotId, db = pool) {
+  const { rows } = await db.query(
+    `SELECT m.slot_id, to_char(m.slot_date, 'YYYY-MM-DD') AS date, m.slot_type AS type, m.state,
+            p.stage, p.yes_count, p.no_count, p.none_count, p.yes_part, p.no_part, p.none_part,
+            p.rule_based_estimate, p.ml_estimate, p.safety_buffer, p.recommended_qty,
+            p.actual_attendance, p.forecast_error, p.computed_at
+     FROM meal_slots m JOIN attendance_predictions p ON p.slot_id = m.slot_id
+     WHERE m.slot_id = $1`,
+    [slotId]
+  );
+  const p = rows[0];
+  if (!p) return null;
+
+  const { rows: dishes } = await db.query(
+    `SELECT d.dish_id, d.name, d.unit, sd.recommended_qty, sd.first_batch_qty, sd.held_back_cooked
+     FROM slot_dishes sd JOIN dishes d ON d.dish_id = sd.dish_id
+     WHERE sd.slot_id = $1 ORDER BY d.dish_id`,
+    [slotId]
+  );
+
+  return {
+    slot_id: p.slot_id,
+    date: p.date,
+    type: p.type,
+    stage: p.stage,
+    yesCount: p.yes_count,
+    noCount: p.no_count,
+    noneCount: p.none_count,
+    yesPart: Number(p.yes_part),
+    noPart: Number(p.no_part),
+    nonePart: Number(p.none_part),
+    expected: Number(p.rule_based_estimate),
+    mlEstimate: p.ml_estimate === null ? null : Number(p.ml_estimate),
+    buffer: Number(p.safety_buffer),
+    headcount: Number(p.recommended_qty),
+    actual: p.actual_attendance,
+    error: p.forecast_error === null ? null : Number(p.forecast_error),
+    computedAt: p.computed_at,
+    dishes: dishes.map((d) => {
+      const total = Number(d.recommended_qty);
+      const firstBatch = Number(d.first_batch_qty);
+      return {
+        dish_id: d.dish_id,
+        name: d.name,
+        unit: d.unit,
+        total,
+        firstBatch,
+        heldBack: Math.round((total - firstBatch) * 10) / 10,
+        heldBackCooked: d.held_back_cooked,
+      };
+    }),
+  };
+}
+
+module.exports = { loadSettings, segmentRates, forecastSlot, storedForecast, completedSlotCount };

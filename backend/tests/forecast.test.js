@@ -104,6 +104,7 @@ describe("recalibration (FR-10, FR-21)", () => {
   test("a student who says yes and does not come loses reliability", async () => {
     const first = await pastSlot(2);
     await mark(first, s(1), true);
+    await attend(first, s(9)); // someone else ate, so we have attendance data
     await recalibrateSlot(first);
 
     let { rows } = await pool.query(
@@ -154,6 +155,7 @@ describe("recalibration (FR-10, FR-21)", () => {
   test("running it twice does not count the meal twice", async () => {
     const slot = await pastSlot(1);
     await mark(slot, s(1), true);
+    await attend(slot, s(9));
     expect(await recalibrateSlot(slot)).toBe(true);
     expect(await recalibrateSlot(slot)).toBe(false);
 
@@ -161,6 +163,19 @@ describe("recalibration (FR-10, FR-21)", () => {
       `SELECT p.sample_size FROM reliability_profiles p JOIN users u USING (user_id) WHERE u.email = 's1@iiitl.ac.in'`
     );
     expect(rows[0].sample_size).toBe(1);
+  });
+
+  test("a meal with no per-student attendance leaves profiles alone and uses the check-in tally", async () => {
+    const slot = await pastSlot(1);
+    await mark(slot, s(1, 2, 3), true);
+    await pool.query("INSERT INTO check_ins (slot_id, count) VALUES ($1, 4), ($1, 7)", [slot]);
+    await forecastSlot(slot, { asOf: new Date(Date.now() - 30 * 3600 * 1000) });
+    await recalibrateSlot(slot);
+
+    const { rows: profiles } = await pool.query("SELECT SUM(sample_size)::int AS n FROM reliability_profiles");
+    expect(profiles[0].n).toBe(0);
+    const { rows } = await pool.query("SELECT actual_attendance FROM attendance_predictions WHERE slot_id = $1", [slot]);
+    expect(rows[0].actual_attendance).toBe(7);
   });
 });
 
