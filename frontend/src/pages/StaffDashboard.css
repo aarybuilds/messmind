@@ -5,35 +5,6 @@
   margin-bottom: 1.25rem;
 }
 
-.tab {
-  background: var(--paper);
-  color: var(--slate);
-  border: 1px solid var(--line);
-  padding: 0.4rem 0.9rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.2;
-}
-
-.tab-day {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  font-weight: 400;
-}
-
-.tab.active {
-  background: var(--slate);
-  color: #fff;
-  border-color: var(--slate);
-}
-
-.tab.active .tab-day {
-  color: #cfd8d4;
-}
-
 .banner {
   background: #eef1ee;
   border-left: 4px solid var(--sage);
@@ -230,6 +201,7 @@
 
 .decide {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 0.8rem;
 }
@@ -249,5 +221,81 @@ button.link {
 @media (max-width: 820px) {
   .service-panel {
     grid-template-columns: 1fr;
+  }
+}
+
+.waste {
+  margin-bottom: 1.5rem;
+  border-top: 4px solid var(--sage);
+}
+
+.waste-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.waste-row .dish-name {
+  width: 110px;
+  font-weight: 600;
+}
+
+.levels {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  flex: 1;
+  border: 1px solid var(--slate);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.level {
+  background: transparent;
+  color: var(--slate);
+  border-radius: 0;
+  font-weight: 400;
+  padding: 0.5rem 0.3rem;
+  font-size: 0.9rem;
+}
+
+.level + .level {
+  border-left: 1px solid var(--slate);
+}
+
+.level.on {
+  background: var(--slate);
+  color: #fff;
+  font-weight: 600;
+}
+
+.waste > button[type='submit'] {
+  margin-top: 1rem;
+}
+
+.waste-done {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.waste-done li {
+  display: flex;
+  justify-content: space-between;
+  max-width: 320px;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+@media (max-width: 600px) {
+  .waste-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .level {
+    font-size: 0.78rem;
   }
 }

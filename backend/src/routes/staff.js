@@ -3,6 +3,7 @@ const pool = require("../db/pool");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { forecastSlot, storedForecast } = require("../services/forecast");
 const { adviseHeldBack, DECISION_WINDOW_MIN } = require("../services/staged");
+const { logWaste } = require("../services/waste");
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ async function slotView(slotId) {
     `SELECT slot_id, state, service_starts_at, service_ends_at,
             NOW() < marking_closes_at AS marking_open,
             NOW() BETWEEN service_starts_at AND service_ends_at AS in_service_window,
+            NOW() > service_ends_at AS service_over,
             EXTRACT(EPOCH FROM NOW() - service_starts_at) / 60 AS minutes_in,
             EXTRACT(EPOCH FROM service_ends_at - service_starts_at) / 60 AS service_minutes
      FROM meal_slots WHERE slot_id = $1`,
@@ -59,7 +61,7 @@ async function slotView(slotId) {
     decideBy: new Date(new Date(slot.service_starts_at).getTime() + DECISION_WINDOW_MIN * 60000),
     checkedIn,
     lastCheckIn: checks[0] ? checks[0].logged_at : null,
-    decision: forecast.dishes.length ? forecast.dishes[0].heldBackCooked : null,
+    decision: forecast.dishes.length ? forecast.dishes[0].heldBackShare : null,
     advice: null,
   };
 
@@ -76,8 +78,15 @@ async function slotView(slotId) {
     });
   }
 
+  const { rows: waste } = await pool.query(
+    "SELECT dish_id, leftover_level AS level FROM waste_logs WHERE slot_id = $1",
+    [slotId]
+  );
+
   return {
     ...forecast,
+    serviceOver: slot.service_over,
+    waste: waste.length ? waste : null,
     state: slot.state,
     markingOpen: slot.marking_open,
     serviceStartsAt: slot.service_starts_at,
@@ -135,20 +144,30 @@ router.post("/slots/:id/check-ins", async (req, res) => {
   res.status(201).json(await slotView(slotId));
 });
 
-// POST /api/staff/slots/:id/held-back  { cook: true | false }
+// POST /api/staff/slots/:id/held-back  { share: 0 to 1 }  0 = held, 1 = all of it, 0.6 = part
 router.post("/slots/:id/held-back", async (req, res) => {
   const slotId = req.params.id;
-  if (typeof req.body.cook !== "boolean") {
-    return res.status(400).json({ error: "cook must be true or false" });
+  const share = req.body.share;
+  if (typeof share !== "number" || share < 0 || share > 1) {
+    return res.status(400).json({ error: "share must be a number from 0 to 1" });
   }
   if (!(await requireServiceWindow(slotId, res))) return;
 
-  await pool.query("UPDATE slot_dishes SET held_back_cooked = $2 WHERE slot_id = $1", [slotId, req.body.cook]);
+  await pool.query("UPDATE slot_dishes SET held_back_share = $2 WHERE slot_id = $1", [slotId, Math.round(share * 100) / 100]);
   await pool.query(
     "UPDATE meal_slots SET state = 'staged_decision' WHERE slot_id = $1 AND state IN ('forecast', 'in_service')",
     [slotId]
   );
   res.json(await slotView(slotId));
+});
+
+// POST /api/staff/slots/:id/waste  { entries: [{ dish_id, level }] }  (FR-19)
+router.post("/slots/:id/waste", async (req, res) => {
+  if (!Array.isArray(req.body.entries)) {
+    return res.status(400).json({ error: "entries must be a list of { dish_id, level }" });
+  }
+  const result = await logWaste(req.params.id, req.body.entries);
+  res.status(201).json({ ...result, view: await slotView(req.params.id) });
 });
 
 module.exports = router;

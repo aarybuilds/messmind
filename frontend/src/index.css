@@ -153,3 +153,32 @@ button.small {
   padding: 0.25rem 0.6rem;
   font-size: 0.85rem;
 }
+
+.tab {
+  background: var(--paper);
+  color: var(--slate);
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.tab-day {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.tab.active {
+  background: var(--slate);
+  color: #fff;
+  border-color: var(--slate);
+}
+
+.tab.active .tab-day {
+  color: #cfd8d4;
+}

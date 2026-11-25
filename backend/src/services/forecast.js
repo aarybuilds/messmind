@@ -201,7 +201,7 @@ async function storedForecast(slotId, db = pool) {
   if (!p) return null;
 
   const { rows: dishes } = await db.query(
-    `SELECT d.dish_id, d.name, d.unit, sd.recommended_qty, sd.first_batch_qty, sd.held_back_cooked
+    `SELECT d.dish_id, d.name, d.unit, sd.recommended_qty, sd.first_batch_qty, sd.held_back_share
      FROM slot_dishes sd JOIN dishes d ON d.dish_id = sd.dish_id
      WHERE sd.slot_id = $1 ORDER BY d.dish_id`,
     [slotId]
@@ -235,7 +235,7 @@ async function storedForecast(slotId, db = pool) {
         total,
         firstBatch,
         heldBack: Math.round((total - firstBatch) * 10) / 10,
-        heldBackCooked: d.held_back_cooked,
+        heldBackShare: d.held_back_share === null ? null : Number(d.held_back_share),
       };
     }),
   };

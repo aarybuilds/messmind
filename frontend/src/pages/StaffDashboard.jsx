@@ -4,6 +4,7 @@ import PageTitle from '../components/PageTitle'
 import ForecastBreakdown from '../components/ForecastBreakdown'
 import DishPlan from '../components/DishPlan'
 import ServicePanel from '../components/ServicePanel'
+import WasteForm from '../components/WasteForm'
 import { dayLabel, formatTime, mealNames } from '../utils/format'
 import './StaffDashboard.css'
 
@@ -13,6 +14,7 @@ export default function StaffDashboard() {
   const [view, setView] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [rateChanges, setRateChanges] = useState(null)
 
   useEffect(() => {
     api('/staff/slots')
@@ -48,6 +50,20 @@ export default function StaffDashboard() {
     }
   }
 
+  async function saveWaste(entries) {
+    setError('')
+    setBusy(true)
+    try {
+      const result = await api(`/staff/slots/${selected}/waste`, { method: 'POST', body: { entries } })
+      setRateChanges(result.changes)
+      setView(result.view)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <>
       <PageTitle kicker="Mess Staff" title="Preparation Plan" />
@@ -57,7 +73,10 @@ export default function StaffDashboard() {
           <button
             key={s.slot_id}
             className={s.slot_id === selected ? 'tab active' : 'tab'}
-            onClick={() => setSelected(s.slot_id)}
+            onClick={() => {
+              setSelected(s.slot_id)
+              setRateChanges(null)
+            }}
           >
             <span className="tab-day">{dayLabel(s.date).split(' · ')[0]}</span>
             {mealNames[s.type]}
@@ -80,15 +99,25 @@ export default function StaffDashboard() {
               service={view.service}
               busy={busy}
               onCheckIn={(body) => post('check-ins', body)}
-              onDecision={(cook) => post('held-back', { cook })}
+              onDecision={(share) => post('held-back', { share })}
             />
           )}
 
-          {!view.service.inWindow && new Date(view.serviceEndsAt) < Date.now() && (
-            <p className="banner">
-              Service is over. {view.service.checkedIn} checked in
-              {view.actual !== null && view.actual !== undefined ? `, ${view.actual} ate` : ''}.
-            </p>
+          {view.serviceOver && (
+            <>
+              <p className="banner">
+                Service is over. {view.service.checkedIn} checked in
+                {view.actual !== null && view.actual !== undefined ? `, ${view.actual} ate` : ''}.
+              </p>
+              <WasteForm
+                key={view.slot_id}
+                dishes={view.dishes}
+                logged={view.waste}
+                changes={rateChanges}
+                busy={busy}
+                onSubmit={saveWaste}
+              />
+            </>
           )}
 
           <div className="plan-grid">

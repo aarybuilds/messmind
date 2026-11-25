@@ -1,0 +1,31 @@
+.settings {
+  max-width: 560px;
+}
+
+.setting {
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.setting-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.setting-input input {
+  width: 110px;
+}
+
+.setting p {
+  margin: 0.35rem 0 0;
+}
+
+.settings button {
+  margin-top: 1rem;
+}
+
+.success {
+  color: var(--ok);
+  font-size: 0.9rem;
+}

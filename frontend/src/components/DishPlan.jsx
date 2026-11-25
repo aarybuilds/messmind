@@ -1,3 +1,10 @@
+function shareTag(share) {
+  if (share === null || share === undefined) return null
+  if (share === 0) return 'held'
+  if (share === 1) return 'cooked'
+  return `${Math.round(share * 100)}% cooked`
+}
+
 function qty(value, unit) {
   if (unit === 'pcs') return `${Math.round(value)} pcs`
   return `${value.toFixed(1)} ${unit}`
@@ -20,10 +27,9 @@ export default function DishPlan({ dishes, decision }) {
           <tr key={d.dish_id}>
             <td className="dish-name">{d.name}</td>
             <td className="first">{qty(d.firstBatch, d.unit)}</td>
-            <td className={decision === true ? 'held cooked' : 'held'}>
+            <td className="held">
               {qty(d.heldBack, d.unit)}
-              {decision === true && <span className="tag">cooked</span>}
-              {decision === false && <span className="tag">held</span>}
+              {shareTag(decision) && <span className="tag">{shareTag(decision)}</span>}
             </td>
             <td className="muted">{qty(d.total, d.unit)}</td>
           </tr>

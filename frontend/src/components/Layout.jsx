@@ -10,7 +10,9 @@ const links = {
   staff: [{ to: '/staff', label: 'Dashboard' }],
   admin: [
     { to: '/admin', label: 'Overview' },
+    { to: '/admin/meals', label: 'Meals' },
     { to: '/admin/users', label: 'Accounts' },
+    { to: '/admin/settings', label: 'Settings' },
   ],
 }
 

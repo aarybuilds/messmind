@@ -6,8 +6,30 @@ const pool = require("../src/db/pool");
 const { createSlot, ensureUpcomingSlots, refreshSlotStates } = require("../src/services/slots");
 const { forecastSlot } = require("../src/services/forecast");
 const { recalibrateSlot } = require("../src/services/recalibrate");
+const { logWaste } = require("../src/services/waste");
+const { adviseHeldBack } = require("../src/services/staged");
 
 const DAYS_OF_HISTORY = 35;
+// what students really eat per head; some differ from the starting rates in the dishes
+// table so the waste loop has something to learn (dal is over-cooked, paneer under-cooked)
+const TRUE_RATES = {
+  Rice: 0.14,
+  Dal: 0.175,
+  Roti: 3.4,
+  "Mixed Veg": 0.115,
+  "Paneer Curry": 0.125,
+  Poha: 0.125,
+  Tea: 0.15,
+  Bread: 2.8,
+};
+
+function leftoverLevel(share) {
+  if (share < 0.05) return "empty";
+  if (share < 0.3) return "almost_empty";
+  if (share < 0.65) return "half_left";
+  return "mostly_full";
+}
+
 const DEMO_STUDENT = "lcb2025101@iiitl.ac.in"; // left unmarked for upcoming slots so the demo starts clean
 
 // fixed seed so every reset gives the same data
@@ -114,8 +136,35 @@ async function main() {
     "SELECT slot_id, marking_closes_at FROM meal_slots WHERE service_ends_at < NOW() ORDER BY service_starts_at"
   );
   for (const s of ordered) {
-    await forecastSlot(s.slot_id, { asOf: s.marking_closes_at });
+    const forecast = await forecastSlot(s.slot_id, { asOf: s.marking_closes_at });
+    const { rows: att } = await pool.query(
+      "SELECT COUNT(*)::int AS n FROM attendance_records WHERE slot_id = $1",
+      [s.slot_id]
+    );
+    const actual = att[0].n;
+
+    // 20 minutes in, staff follow the advisor based on how many have checked in
+    const checkedIn = Math.round(actual * 0.61 * between(0.92, 1.08));
+    const advice = adviseHeldBack({
+      headcount: forecast.headcount,
+      split: forecast.firstBatchSplit,
+      observed: checkedIn,
+      minutesIn: 20,
+      serviceMinutes: 120,
+      dishes: forecast.dishes,
+    });
+    const share = advice.fraction;
+    await pool.query("UPDATE slot_dishes SET held_back_share = $2 WHERE slot_id = $1", [s.slot_id, share]);
     await recalibrateSlot(s.slot_id);
+
+    // leftovers: what was cooked minus what people actually ate
+    const entries = forecast.dishes.map((d) => {
+      const prepared = d.firstBatch + share * d.heldBack;
+      const eaten = actual * TRUE_RATES[d.name] * between(0.93, 1.07);
+      const left = prepared > 0 ? Math.max(0, 1 - eaten / prepared) : 0;
+      return { dish_id: d.dish_id, level: leftoverLevel(left) };
+    });
+    await logWaste(s.slot_id, entries);
   }
 
   // declarations for meals that haven't been served yet

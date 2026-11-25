@@ -1,7 +1,7 @@
 -- MessMind database schema (PostgreSQL)
 -- Follows the ER diagram in docs/SRS.md, section 5.4
 
-DROP TABLE IF EXISTS waste_logs, check_ins, attendance_records, attendance_predictions,
+DROP TABLE IF EXISTS dish_rate_history, waste_logs, check_ins, attendance_records, attendance_predictions,
     slot_dishes, meal_marks, dishes, meal_slots, reliability_profiles, settings, users CASCADE;
 DROP TYPE IF EXISTS user_role, slot_type, slot_state, leftover_level CASCADE;
 
@@ -68,7 +68,7 @@ CREATE TABLE slot_dishes (
     dish_id             INT NOT NULL REFERENCES dishes(dish_id),
     recommended_qty     DECIMAL(8,2),
     first_batch_qty     DECIMAL(8,2),
-    held_back_cooked    BOOLEAN,
+    held_back_share     DECIMAL(3,2),  -- 0 = held, 1 = all cooked, between = part (null = not decided)
     PRIMARY KEY (slot_id, dish_id)
 );
 
@@ -121,6 +121,17 @@ CREATE TABLE waste_logs (
     leftover_level leftover_level NOT NULL,
     logged_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (slot_id, dish_id)
+);
+
+-- every change the waste loop makes to a dish's per-head rate (FR-20)
+CREATE TABLE dish_rate_history (
+    history_id    SERIAL PRIMARY KEY,
+    dish_id       INT NOT NULL REFERENCES dishes(dish_id),
+    slot_id       INT NOT NULL REFERENCES meal_slots(slot_id) ON DELETE CASCADE,
+    old_rate      DECIMAL(6,3) NOT NULL,
+    observed_rate DECIMAL(6,3) NOT NULL,
+    new_rate      DECIMAL(6,3) NOT NULL,
+    changed_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- tunable parameters (FR-24)

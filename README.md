@@ -58,7 +58,8 @@ npm run dev
 To show the live service panel at any time of day, put the next meal in service:
 
 ```bash
-cd backend && npm run demo:serve     # service started 18 minutes ago
+cd backend && npm run demo:serve          # service started 18 minutes ago
+cd backend && npm run demo:serve -- done  # service just ended, log leftovers
 ```
 
 Backend tests use a separate database:
@@ -92,11 +93,15 @@ meal-type and day-of-week averages before that (SRS table 3.1). After every meal
 profiles are updated from who actually came. With 90+ finished meals a small ridge
 regression is shown next to the formula; the kitchen plan always uses the formula.
 
-Code: `backend/src/services/estimator.js`, `parameters.js`, `forecast.js`, `recalibrate.js`, `refiner.js`.
+After each meal, staff log what is left in each container (Empty / Almost empty / Half left /
+Mostly full). The served amount per student is worked out from that and each dish's per-student
+rate moves 20% of the way towards it, so the next quantity plan is closer.
+
+Code: `backend/src/services/estimator.js`, `parameters.js`, `forecast.js`, `recalibrate.js`, `refiner.js`, `staged.js`, `wasteMath.js`.
 
 ## Status
 
-Requirements and design are final. Implementation in progress.
+All five increments from SRS section 2.8 are implemented. 105 backend tests.
 
 | Increment | Status |
 | --- | --- |
@@ -104,4 +109,4 @@ Requirements and design are final. Implementation in progress.
 | 2. Meal marking | Done |
 | 3. Prediction engine | Done |
 | 4. Staff dashboard and quantity recommendation | Done |
-| 5. Waste logging and recalibration | Next |
+| 5. Waste logging and recalibration | Done |
