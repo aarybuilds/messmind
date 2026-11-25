@@ -1,0 +1,158 @@
+.chart {
+  margin: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1rem 1.1rem;
+}
+
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.chart figcaption {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--slate);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.swatch.line {
+  height: 3px;
+  width: 16px;
+}
+
+.chart-plot {
+  position: relative;
+}
+
+.chart-plot svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart .grid {
+  stroke: #e6e1d6;
+  stroke-width: 1;
+}
+
+.chart .axis {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.chart .end-label {
+  font-size: 12px;
+  fill: var(--text);
+}
+
+.chart .crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.tooltip {
+  position: absolute;
+  top: 0.5rem;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8rem;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.tip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tip-val {
+  margin-left: auto;
+  padding-left: 0.8rem;
+  font-weight: 600;
+}
+
+.chart-table {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.chart-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.chart-table th,
+.chart-table td {
+  text-align: left;
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* stacked bars */
+.bar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.45rem 0;
+  font-size: 0.9rem;
+}
+
+.bar-track {
+  display: flex;
+  gap: 2px;
+  height: 18px;
+  position: relative;
+}
+
+.bar-seg {
+  height: 100%;
+}
+
+.bar-seg:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.bar-seg:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.bar-seg:only-child {
+  border-radius: 4px;
+}
