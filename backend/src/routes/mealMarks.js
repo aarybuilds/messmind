@@ -30,6 +30,24 @@ router.get("/upcoming", async (req, res) => {
   res.json(rows);
 });
 
+// GET /api/meal-marks/reminders - open meals I haven't marked that close soon (FR-6)
+router.get("/reminders", async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT m.slot_id, to_char(m.slot_date, 'YYYY-MM-DD') AS date, m.slot_type AS type,
+            m.marking_closes_at
+     FROM meal_slots m
+     LEFT JOIN meal_marks mm ON mm.slot_id = m.slot_id AND mm.user_id = $1
+     WHERE mm.mark_id IS NULL
+       AND NOW() < m.marking_closes_at
+       AND m.marking_closes_at <= NOW() + (
+         SELECT value FROM settings WHERE key = 'reminder_hours'
+       ) * INTERVAL '1 hour'
+     ORDER BY m.marking_closes_at`,
+    [req.user.id]
+  );
+  res.json(rows);
+});
+
 // GET /api/meal-marks/history - my last 30 days (FR-5). Only my own record.
 router.get("/history", async (req, res) => {
   const { rows } = await pool.query(

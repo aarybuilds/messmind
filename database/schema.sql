@@ -128,7 +128,8 @@ CREATE TABLE settings (
 INSERT INTO settings (key, value) VALUES
     ('safety_buffer', 0.08),
     ('first_batch_split', 0.75),
-    ('flat_attendance_rate', 0.65);
+    ('flat_attendance_rate', 0.65),
+    ('reminder_hours', 3);
 
 CREATE INDEX idx_marks_slot ON meal_marks(slot_id);
 CREATE INDEX idx_attendance_slot ON attendance_records(slot_id);
