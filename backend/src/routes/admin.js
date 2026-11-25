@@ -42,4 +42,101 @@ router.put("/settings", async (req, res) => {
   res.json({ settings, limits: EDITABLE });
 });
 
+// GET /api/admin/dishes
+router.get("/dishes", async (req, res) => {
+  const { rows } = await pool.query(
+    "SELECT dish_id, name, unit, consumption_rate::float AS consumption_rate FROM dishes ORDER BY name"
+  );
+  res.json(rows);
+});
+
+// POST /api/admin/dishes  { name, unit, consumption_rate }
+router.post("/dishes", async (req, res) => {
+  const { name, unit, consumption_rate: rate } = req.body;
+  if (!name || !["kg", "L", "pcs"].includes(unit)) {
+    return res.status(400).json({ error: "Give a name and a unit of kg, L or pcs" });
+  }
+  if (typeof rate !== "number" || rate <= 0 || rate > 20) {
+    return res.status(400).json({ error: "Per-head amount must be a positive number" });
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO dishes (name, unit, consumption_rate) VALUES ($1, $2, $3)
+       RETURNING dish_id, name, unit, consumption_rate::float AS consumption_rate`,
+      [name.trim(), unit, rate]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    if (err.code === "23505") return res.status(409).json({ error: "A dish with this name already exists" });
+    throw err;
+  }
+});
+
+// GET /api/admin/slots - the coming week with timings and menu (FR-23)
+router.get("/slots", async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT m.slot_id, to_char(m.slot_date, 'YYYY-MM-DD') AS date, m.slot_type AS type, m.state,
+            m.marking_closes_at, m.service_starts_at, m.service_ends_at,
+            NOW() < m.marking_closes_at AS editable,
+            COALESCE(array_agg(sd.dish_id ORDER BY sd.dish_id) FILTER (WHERE sd.dish_id IS NOT NULL), '{}') AS dish_ids
+     FROM meal_slots m
+     LEFT JOIN slot_dishes sd ON sd.slot_id = m.slot_id
+     WHERE m.service_ends_at > NOW()
+     GROUP BY m.slot_id
+     ORDER BY m.service_starts_at`
+  );
+  res.json(rows);
+});
+
+// PUT /api/admin/slots/:id  { marking_closes_at, service_starts_at, service_ends_at, dish_ids }
+router.put("/slots/:id", async (req, res) => {
+  const { marking_closes_at: closes, service_starts_at: starts, service_ends_at: ends, dish_ids: dishIds } = req.body;
+
+  const { rows } = await pool.query(
+    "SELECT NOW() < marking_closes_at AS editable FROM meal_slots WHERE slot_id = $1",
+    [req.params.id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: "Meal not found" });
+  if (!rows[0].editable) {
+    return res.status(409).json({ error: "Marking has closed for this meal, so it can't be changed" });
+  }
+
+  const c = new Date(closes);
+  const s = new Date(starts);
+  const e = new Date(ends);
+  if ([c, s, e].some((d) => Number.isNaN(d.getTime()))) {
+    return res.status(400).json({ error: "Give all three times" });
+  }
+  if (!(c < s && s < e)) {
+    return res.status(400).json({ error: "Marking must close before service starts, and service must start before it ends" });
+  }
+  if (!Array.isArray(dishIds) || dishIds.length === 0) {
+    return res.status(400).json({ error: "Pick at least one dish" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `UPDATE meal_slots SET marking_closes_at = $2, service_starts_at = $3, service_ends_at = $4
+       WHERE slot_id = $1`,
+      [req.params.id, c, s, e]
+    );
+    await client.query("DELETE FROM slot_dishes WHERE slot_id = $1 AND NOT (dish_id = ANY($2))", [req.params.id, dishIds]);
+    await client.query(
+      `INSERT INTO slot_dishes (slot_id, dish_id)
+       SELECT $1, dish_id FROM dishes WHERE dish_id = ANY($2)
+       ON CONFLICT DO NOTHING`,
+      [req.params.id, dishIds]
+    );
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+  res.json({ ok: true });
+});
+
 module.exports = router;
