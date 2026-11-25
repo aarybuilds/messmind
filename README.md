@@ -19,15 +19,21 @@ Presentation date: 2 December 2026
 ```
 messmind/
 ├── docs/
-│   ├── SRS.md          # Software Requirements Specification
-│   ├── diagrams/       # use case, class, ER, sequence, activity, state
-│   └── ppt/            # presentation
+│   ├── SRS.md          # Software Requirements Specification (IEEE 830)
+│   └── diagrams/       # architecture, DFD, use case, class, ER, sequence, activity, state
 ├── backend/            # REST API + prediction engine
 ├── frontend/           # web client
 ├── database/           # schema + seed data
 └── Group_24/           # final submission copy for the Drive link
+    ├── PPT/            # presentation deck
+    └── SRS/            # SRS (PDF + DOCX)
 ```
+
+## Documents
+
+- [Software Requirements Specification](docs/SRS.md) · [PDF](Group_24/SRS/MessMind_SRS_Group24.pdf)
+- [Presentation deck](Group_24/PPT/MessMind_PPT_Group24.pdf)
 
 ## Status
 
-Scaffold only. Scope and design are being finalised.
+Requirements and design are final. Implementation in progress.
