@@ -38,7 +38,7 @@ async function recalibrateSlot(slotId) {
          no_attended   = no_attended   + (c.intent IS FALSE AND c.attended)::int,
          none_total    = none_total    + (c.intent IS NULL)::int,
          none_attended = none_attended + (c.intent IS NULL AND c.attended)::int,
-         none_expected = none_expected + CASE WHEN c.intent IS NULL THEN $2 ELSE 0 END,
+         none_expected = none_expected + CASE WHEN c.intent IS NULL THEN $2::decimal ELSE 0 END,
          sample_size   = sample_size + 1,
          updated_at    = NOW()
        FROM (
