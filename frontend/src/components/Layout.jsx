@@ -11,6 +11,7 @@ const links = {
   admin: [
     { to: '/admin', label: 'Overview' },
     { to: '/admin/users', label: 'Accounts' },
+    { to: '/admin/settings', label: 'Settings' },
   ],
 }
 

@@ -8,6 +8,7 @@ import StudentHistory from './pages/StudentHistory'
 import StaffDashboard from './pages/StaffDashboard'
 import AdminHome from './pages/AdminHome'
 import AdminUsers from './pages/AdminUsers'
+import AdminSettings from './pages/AdminSettings'
 
 function HomeRedirect() {
   const { user, loading } = useAuth()
@@ -55,6 +56,7 @@ function App() {
           >
             <Route index element={<AdminHome />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
 
           <Route path="*" element={<HomeRedirect />} />
