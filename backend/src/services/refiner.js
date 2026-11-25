@@ -53,7 +53,8 @@ async function refineEstimate(current, { asOf = null, db = pool } = {}) {
   );
   const y = rows.map((r) => r.actual_attendance / 100);
 
-  const weights = fitRidge(X, y, 0.5);
+  // intercept and the formula's estimate are free; only the corrections are penalised
+  const weights = fitRidge(X, y, 0.5, 2);
   const estimate = predict(weights, features(current)) * 100;
   return Math.max(0, Math.round(estimate * 10) / 10);
 }

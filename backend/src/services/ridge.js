@@ -1,7 +1,7 @@
 // Ridge regression (least squares with a small penalty), solved directly:
 //   w = (X'X + lambda*I)^-1 X'y
 // Small enough to explain by hand, which is why we didn't pull in an ML library.
-// The first column of X is assumed to be the constant 1 and is not penalised.
+// The first `free` columns (the constant 1, and anything we fully trust) are not penalised.
 
 function solve(A, b) {
   // Gaussian elimination with partial pivoting
@@ -25,7 +25,7 @@ function solve(A, b) {
   return M.map((row, i) => row[n] / row[i]);
 }
 
-function fitRidge(X, y, lambda = 1) {
+function fitRidge(X, y, lambda = 1, free = 1) {
   const k = X[0].length;
   const XtX = Array.from({ length: k }, () => Array(k).fill(0));
   const Xty = Array(k).fill(0);
@@ -36,7 +36,7 @@ function fitRidge(X, y, lambda = 1) {
       for (let b = 0; b < k; b++) XtX[a][b] += X[i][a] * X[i][b];
     }
   }
-  for (let a = 1; a < k; a++) XtX[a][a] += lambda;
+  for (let a = free; a < k; a++) XtX[a][a] += lambda;
 
   return solve(XtX, Xty);
 }
