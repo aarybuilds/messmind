@@ -139,4 +139,82 @@ router.put("/slots/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/admin/analytics?days=30 - aggregates only, no student appears anywhere (FR-25)
+router.get("/analytics", async (req, res) => {
+  const days = Math.min(90, Math.max(7, Number(req.query.days) || 30));
+
+  const { rows: meals } = await pool.query(
+    `SELECT m.slot_id, to_char(m.slot_date, 'YYYY-MM-DD') AS date, m.slot_type AS type,
+            p.yes_count, p.rule_based_estimate::float AS expected, p.ml_estimate::float AS ml,
+            p.recommended_qty::int AS planned, p.actual_attendance AS actual
+     FROM meal_slots m JOIN attendance_predictions p ON p.slot_id = m.slot_id
+     WHERE p.actual_attendance IS NOT NULL
+       AND m.slot_date >= (NOW() AT TIME ZONE 'Asia/Kolkata')::date - $1::int
+     ORDER BY m.service_starts_at`,
+    [days]
+  );
+
+  const mae = (pick) => {
+    const rows = meals.filter((m) => pick(m) !== null);
+    if (rows.length === 0) return null;
+    return Math.round((rows.reduce((t, m) => t + Math.abs(pick(m) - m.actual), 0) / rows.length) * 10) / 10;
+  };
+  const avgActual = meals.length ? meals.reduce((t, m) => t + m.actual, 0) / meals.length : 0;
+
+  const summary = {
+    meals: meals.length,
+    averageAttendance: Math.round(avgActual),
+    error: {
+      countOfYes: mae((m) => m.yes_count),
+      formula: mae((m) => m.expected),
+      regression: mae((m) => m.ml),
+    },
+  };
+
+  // food in held-back batches that was never cooked, by unit
+  const { rows: notCooked } = await pool.query(
+    `SELECT d.unit, ROUND(SUM((1 - sd.held_back_share) * (sd.recommended_qty - sd.first_batch_qty)), 1)::float AS amount
+     FROM slot_dishes sd
+     JOIN dishes d ON d.dish_id = sd.dish_id
+     JOIN meal_slots m ON m.slot_id = sd.slot_id
+     WHERE sd.held_back_share IS NOT NULL
+       AND m.slot_date >= (NOW() AT TIME ZONE 'Asia/Kolkata')::date - $1::int
+     GROUP BY d.unit ORDER BY d.unit`,
+    [days]
+  );
+  const { rows: decisions } = await pool.query(
+    `SELECT CASE WHEN share = 1 THEN 'all' WHEN share = 0 THEN 'held' ELSE 'part' END AS decision,
+            COUNT(*)::int AS meals
+     FROM (SELECT DISTINCT sd.slot_id, sd.held_back_share AS share
+           FROM slot_dishes sd JOIN meal_slots m ON m.slot_id = sd.slot_id
+           WHERE sd.held_back_share IS NOT NULL
+             AND m.slot_date >= (NOW() AT TIME ZONE 'Asia/Kolkata')::date - $1::int) x
+     GROUP BY 1`,
+    [days]
+  );
+
+  const { rows: waste } = await pool.query(
+    `SELECT d.name AS dish, w.leftover_level AS level, COUNT(*)::int AS meals
+     FROM waste_logs w
+     JOIN dishes d ON d.dish_id = w.dish_id
+     JOIN meal_slots m ON m.slot_id = w.slot_id
+     WHERE m.slot_date >= (NOW() AT TIME ZONE 'Asia/Kolkata')::date - $1::int
+     GROUP BY 1, 2 ORDER BY 1`,
+    [days]
+  );
+
+  const { rows: rates } = await pool.query(
+    `SELECT d.name AS dish, d.unit, d.consumption_rate::float AS now,
+            COALESCE((SELECT h.old_rate FROM dish_rate_history h WHERE h.dish_id = d.dish_id
+                      ORDER BY h.history_id LIMIT 1), d.consumption_rate)::float AS started,
+            COALESCE((SELECT json_agg(json_build_object('date', to_char(m.slot_date, 'YYYY-MM-DD'), 'rate', h.new_rate::float)
+                                      ORDER BY h.history_id)
+                      FROM dish_rate_history h JOIN meal_slots m ON m.slot_id = h.slot_id
+                      WHERE h.dish_id = d.dish_id), '[]') AS history
+     FROM dishes d ORDER BY d.name`
+  );
+
+  res.json({ days, summary, meals, heldBack: { notCooked, decisions }, waste, rates });
+});
+
 module.exports = router;
