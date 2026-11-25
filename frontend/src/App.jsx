@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import StudentHome from './pages/StudentHome'
 import StaffDashboard from './pages/StaffDashboard'
 import AdminHome from './pages/AdminHome'
+import AdminUsers from './pages/AdminUsers'
 
 function HomeRedirect() {
   const { user, loading } = useAuth()
@@ -51,6 +52,7 @@ function App() {
             }
           >
             <Route index element={<AdminHome />} />
+            <Route path="users" element={<AdminUsers />} />
           </Route>
 
           <Route path="*" element={<HomeRedirect />} />
