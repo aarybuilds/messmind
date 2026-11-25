@@ -359,3 +359,69 @@ A canteen ordering system records what was ordered. MessMind records what was pr
 ![The closed loop](diagrams/feedback-loop.png)
 
 *Figure 5.10 — The closed loop: declaration, forecast, measurement, correction*
+
+---
+
+## 6 Requirements Traceability Matrix
+
+The matrix traces each group of requirements to the model that realises it and the method by which it will be checked. Three items deserve a note. Forecast correctness is checked by computing a forecast by hand from seed data and asserting the system reproduces it exactly, which separates an implementation defect from ordinary forecast error. Recalibration is checked by running a simulated meal cycle with a known discrepancy and confirming the parameters move in the right direction. NFR-1 and FR-25 are negative requirements, so they are checked by enumerating every endpoint under a staff credential.
+
+| Requirements | Design element | Model reference | Verification method |
+| --- | --- | --- | --- |
+| FR-1, FR-2 | Auth and RBAC service | Fig. 2.1, Fig. 5.5 | Integration test per role |
+| FR-3 – FR-7 | Meal marking service; MealMark | Fig. 5.4, Fig. 5.7 | Functional test; boundary test at cut-off |
+| FR-8 – FR-10 | PredictionEngine; ReliabilityProfile | §3.2.2, Fig. 5.5 | Unit test against hand-computed forecast |
+| FR-11, FR-13 | Degradation ladder; fallback path | Table 3.1 | Test with empty parameter table |
+| FR-12 | Buffer applied in recommendation | §3.2.2 | Unit test across buffer values |
+| FR-14, FR-15, FR-18 | Quantity recommender | Fig. 5.3, Fig. 5.7 | Functional test; staff walkthrough |
+| FR-16, FR-17 | Staged batch evaluator | Fig. 5.8 | Scenario test: arrivals above and below forecast |
+| FR-19 – FR-21 | Waste service; recalibration | Fig. 5.3, Fig. 5.10 | End-to-end cycle test on seed data |
+| FR-22 – FR-24 | Admin console; analytics | Fig. 5.3 | Functional test per screen |
+| FR-25, NFR-1 | Aggregation at the query layer | Fig. 5.6 | Endpoint audit under staff credential |
+| NFR-2, ASM-5 | Declaration isolated from billing | §2.6 | Code review; schema inspection |
+| NFR-4 | Stored forecast inputs; breakdown panel | §3.2.2 | Re-derivation of a stored forecast |
+| NFR-5 – NFR-7 | Dashboard design | §4 | Timed walkthrough; viewport test |
+| NFR-9 | Single prediction service interface | Fig. 2.1 | Substitution test |
+
+---
+
+## 7 Future Enhancements
+
+The following are outside the scope fixed in Section 1.2, and are recorded so the boundary stays deliberate.
+
+- **Time-series forecasting model** once enough history exists, to capture seasonality the current feature set treats as independent effects.
+- **Automated check-in** by card or QR, replacing the manual tally of FR-16 and improving the arrival-rate signal.
+- **Per-dish popularity signal,** since menu composition clearly shifts attendance and a popularity term would sharpen the estimator.
+- **Weight-based leftover capture,** replacing the four-point scale of CON-5 with a continuous measure.
+- **Multi-mess deployment,** so parameters can be compared across hostels rather than scoped to one mess.
+
+---
+
+## Appendix A — Worked Example of a Forecast
+
+This shows the estimator of Section 3.2.2 on a dinner slot in a hostel of 400 students, with the system at Stage 2. The figures are illustrative.
+
+**Table A.1 — Group contributions**
+
+| Group | Students | Mean weight | Contribution |
+| --- | --- | --- | --- |
+| Declared they would eat (Y), weighted by reliability score | 180 | 0.94 | 169.2 |
+| Declared they would not eat (N), weighted by flip rate | 60 | 0.08 | 4.8 |
+| Declared nothing (U), weighted by baseline rate | 160 | 0.52 | 83.2 |
+| **Expected attendance E** | **400** | — | **257.2** |
+
+A naive count of declarations would have given 180. The estimate is 257, because the 160 undeclared students are not absent, only unobserved, and their own history says roughly half of them will come.
+
+**Table A.2 — From attendance to the kitchen**
+
+| Step | Computation | Result |
+| --- | --- | --- |
+| Apply safety buffer β = 0.08 | 257.2 × 1.08 | 277.8 → 278 students |
+| Rice, consumption rate 0.145 kg per head | 278 × 0.145 | 40.3 kg |
+| Dal, consumption rate 0.210 L per head | 278 × 0.210 | 58.4 L |
+| **First batch of rice, split σ = 0.75** | **40.3 × 0.75** | **30.2 kg** |
+| **Held back pending check-ins** | **40.3 − 30.2** | **10.1 kg** |
+
+Twenty minutes into service, 196 students have checked in against a forecast of 170 at that point. Arrivals are running ahead, so the system prompts the kitchen to cook the held-back 10.1 kg. Had arrivals tracked below the forecast, that quantity would never have been cooked, and that is where the waste reduction actually comes from.
+
+**After the meal.** Recorded attendance is 271 against a forecast of 278, an error of +2.6 per cent. Leftovers are logged as Almost empty for rice and Half left for dal. The system derives the served quantities, revises dal's consumption rate downward, and adjusts the reliability scores of every student whose declaration did not match their attendance. The next dinner forecast uses the corrected parameters.
