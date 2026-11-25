@@ -110,6 +110,33 @@ describe("held-back decision (FR-17)", () => {
   });
 });
 
+describe("leftovers due", () => {
+  test("a finished meal from yesterday without leftovers is listed and flagged", async () => {
+    const { rows } = await pool.query(
+      `INSERT INTO meal_slots (slot_date, slot_type, marking_closes_at, service_starts_at, service_ends_at, state)
+       VALUES (CURRENT_DATE - 1, 'dinner', NOW() - INTERVAL '14 hours', NOW() - INTERVAL '10 hours',
+               NOW() - INTERVAL '8 hours', 'completed')
+       ON CONFLICT (slot_date, slot_type) DO UPDATE SET service_ends_at = EXCLUDED.service_ends_at
+       RETURNING slot_id`
+    );
+    const res = await request(app).get("/api/staff/slots").set("Authorization", `Bearer ${staff}`);
+    expect(res.body.slots.map((s) => s.slot_id)).toContain(rows[0].slot_id);
+    expect(res.body.leftoversDue).toContain(rows[0].slot_id);
+  });
+
+  test("a meal that just finished opens first", async () => {
+    const { rows } = await pool.query(
+      `INSERT INTO meal_slots (slot_date, slot_type, marking_closes_at, service_starts_at, service_ends_at, state)
+       VALUES (CURRENT_DATE + $1::int, 'lunch', NOW() - INTERVAL '5 hours', NOW() - INTERVAL '2 hours',
+               NOW() - INTERVAL '10 minutes', 'completed')
+       RETURNING slot_id`,
+      [-2]
+    );
+    const res = await request(app).get("/api/staff/slots").set("Authorization", `Bearer ${staff}`);
+    expect(res.body.currentId).toBe(rows[0].slot_id);
+  });
+});
+
 describe("access", () => {
   test("students cannot use the staff endpoints", async () => {
     const res = await request(app).get("/api/staff/slots").set("Authorization", `Bearer ${student}`);
