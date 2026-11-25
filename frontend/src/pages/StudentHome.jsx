@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import PageTitle from '../components/PageTitle'
 import MealCard from '../components/MealCard'
+import ReminderBanner from '../components/ReminderBanner'
 import { dayLabel, groupByDate } from '../utils/format'
 import './StudentHome.css'
 
@@ -10,6 +11,7 @@ export default function StudentHome() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [savingId, setSavingId] = useState(null)
+  const [changes, setChanges] = useState(0)
 
   useEffect(() => {
     api('/meal-marks/upcoming')
@@ -30,6 +32,7 @@ export default function StudentHome() {
       } else {
         await api(`/meal-marks/${meal.slot_id}`, { method: 'PUT', body: { eating } })
       }
+      setChanges((c) => c + 1)
     } catch (err) {
       setMeals(before)
       setError(err.message)
@@ -48,6 +51,7 @@ export default function StudentHome() {
         your mess fee. Tap a choice again to clear it.
       </p>
 
+      <ReminderBanner refreshKey={changes} />
       {error && <p className="error">{error}</p>}
       {loading && <p className="muted">Loading meals...</p>}
 

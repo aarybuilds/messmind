@@ -89,3 +89,19 @@
   color: var(--muted);
   margin: 0.6rem 0 0;
 }
+
+.reminder {
+  background: #f6ead9;
+  border: 1px solid var(--brown);
+  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  margin: 1rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reminder button {
+  margin-left: auto;
+}
