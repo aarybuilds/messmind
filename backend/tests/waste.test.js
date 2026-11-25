@@ -3,7 +3,7 @@ const { app, pool, request, resetDb, tokenFor } = require("./helpers");
 let staff;
 
 // a finished lunch with rice and dal on the plan, and `ate` students recorded as eating
-async function finishedMeal({ ate = 100, heldBackCooked = true } = {}) {
+async function finishedMeal({ ate = 100, heldBackShare = 1 } = {}) {
   const { rows } = await pool.query(
     `INSERT INTO meal_slots (slot_date, slot_type, marking_closes_at, service_starts_at, service_ends_at, state)
      VALUES (CURRENT_DATE - (random() * 1000)::int - 1, 'lunch', NOW() - INTERVAL '8 hours',
@@ -18,11 +18,11 @@ async function finishedMeal({ ate = 100, heldBackCooked = true } = {}) {
   );
   // planned for 110: rice 16 kg (12 first), dal 23.1 L (17.3 first)
   await pool.query(
-    `INSERT INTO slot_dishes (slot_id, dish_id, recommended_qty, first_batch_qty, held_back_cooked)
+    `INSERT INTO slot_dishes (slot_id, dish_id, recommended_qty, first_batch_qty, held_back_share)
      SELECT $1, dish_id, CASE name WHEN 'Rice' THEN 16 ELSE 23.1 END,
             CASE name WHEN 'Rice' THEN 12 ELSE 17.3 END, $2
      FROM dishes WHERE name IN ('Rice', 'Dal')`,
-    [slot, heldBackCooked]
+    [slot, heldBackShare]
   );
   await pool.query(
     `INSERT INTO attendance_predictions (slot_id, stage, yes_count, no_count, none_count, yes_part,
@@ -99,7 +99,7 @@ test("moves the meal to model_updated", async () => {
 });
 
 test("uses only the first batch when the held-back batch was held", async () => {
-  const slot = await finishedMeal({ ate: 100, heldBackCooked: false });
+  const slot = await finishedMeal({ ate: 100, heldBackShare: 0 });
   const ids = await dishIds();
   await logWaste(slot, [
     { dish_id: ids.Rice, level: "half_left" },

@@ -89,17 +89,24 @@ describe("dashboard view", () => {
 describe("held-back decision (FR-17)", () => {
   test("recording the decision marks every dish and moves the state on", async () => {
     const slot = await servingSlot(20);
-    const res = await post(`/api/staff/slots/${slot}/held-back`, staff, { cook: true });
+    const res = await post(`/api/staff/slots/${slot}/held-back`, staff, { share: 1 });
     expect(res.status).toBe(200);
-    expect(res.body.service.decision).toBe(true);
+    expect(res.body.service.decision).toBe(1);
 
     const { rows } = await pool.query("SELECT state FROM meal_slots WHERE slot_id = $1", [slot]);
     expect(rows[0].state).toBe("staged_decision");
   });
 
-  test("cook must be a boolean", async () => {
+  test("a partial batch is stored as a share", async () => {
     const slot = await servingSlot(20);
-    expect((await post(`/api/staff/slots/${slot}/held-back`, staff, { cook: "yes" })).status).toBe(400);
+    const res = await post(`/api/staff/slots/${slot}/held-back`, staff, { share: 0.6 });
+    expect(res.body.service.decision).toBe(0.6);
+  });
+
+  test("share must be between 0 and 1", async () => {
+    const slot = await servingSlot(20);
+    expect((await post(`/api/staff/slots/${slot}/held-back`, staff, { share: "yes" })).status).toBe(400);
+    expect((await post(`/api/staff/slots/${slot}/held-back`, staff, { share: 1.5 })).status).toBe(400);
   });
 });
 

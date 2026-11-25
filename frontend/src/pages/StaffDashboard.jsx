@@ -99,7 +99,7 @@ export default function StaffDashboard() {
               service={view.service}
               busy={busy}
               onCheckIn={(body) => post('check-ins', body)}
-              onDecision={(cook) => post('held-back', { cook })}
+              onDecision={(share) => post('held-back', { share })}
             />
           )}
 

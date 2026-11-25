@@ -15,13 +15,13 @@ function round3(x) {
   return Math.round(x * 1000) / 1000;
 }
 
-// what actually went in the pot: first batch, plus the held-back batch if it was cooked.
-// If nobody recorded a decision, assume the whole quantity was cooked.
-function preparedQuantity(dish, heldBackCooked) {
+// what actually went in the pot: first batch plus whatever share of the held-back batch was cooked.
+// If nobody recorded a decision, assume all of it was cooked.
+function preparedQuantity(dish, heldBackShare) {
   const first = Number(dish.first_batch_qty);
   const total = Number(dish.recommended_qty);
-  if (heldBackCooked === false) return first;
-  return total;
+  const share = heldBackShare === null || heldBackShare === undefined ? 1 : Number(heldBackShare);
+  return first + share * (total - first);
 }
 
 function servedQuantity(prepared, level) {

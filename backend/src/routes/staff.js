@@ -61,7 +61,7 @@ async function slotView(slotId) {
     decideBy: new Date(new Date(slot.service_starts_at).getTime() + DECISION_WINDOW_MIN * 60000),
     checkedIn,
     lastCheckIn: checks[0] ? checks[0].logged_at : null,
-    decision: forecast.dishes.length ? forecast.dishes[0].heldBackCooked : null,
+    decision: forecast.dishes.length ? forecast.dishes[0].heldBackShare : null,
     advice: null,
   };
 
@@ -144,15 +144,16 @@ router.post("/slots/:id/check-ins", async (req, res) => {
   res.status(201).json(await slotView(slotId));
 });
 
-// POST /api/staff/slots/:id/held-back  { cook: true | false }
+// POST /api/staff/slots/:id/held-back  { share: 0 to 1 }  0 = held, 1 = all of it, 0.6 = part
 router.post("/slots/:id/held-back", async (req, res) => {
   const slotId = req.params.id;
-  if (typeof req.body.cook !== "boolean") {
-    return res.status(400).json({ error: "cook must be true or false" });
+  const share = req.body.share;
+  if (typeof share !== "number" || share < 0 || share > 1) {
+    return res.status(400).json({ error: "share must be a number from 0 to 1" });
   }
   if (!(await requireServiceWindow(slotId, res))) return;
 
-  await pool.query("UPDATE slot_dishes SET held_back_cooked = $2 WHERE slot_id = $1", [slotId, req.body.cook]);
+  await pool.query("UPDATE slot_dishes SET held_back_share = $2 WHERE slot_id = $1", [slotId, Math.round(share * 100) / 100]);
   await pool.query(
     "UPDATE meal_slots SET state = 'staged_decision' WHERE slot_id = $1 AND state IN ('forecast', 'in_service')",
     [slotId]

@@ -4,11 +4,15 @@ const rice = { recommended_qty: 40.3, first_batch_qty: 30.2 };
 
 describe("prepared quantity", () => {
   test("held-back batch cooked means the full amount", () => {
-    expect(preparedQuantity(rice, true)).toBe(40.3);
+    expect(preparedQuantity(rice, 1)).toBeCloseTo(40.3, 5);
   });
 
   test("held-back batch held means only the first batch", () => {
-    expect(preparedQuantity(rice, false)).toBe(30.2);
+    expect(preparedQuantity(rice, 0)).toBe(30.2);
+  });
+
+  test("half the held-back batch cooked", () => {
+    expect(preparedQuantity(rice, 0.5)).toBeCloseTo(35.25, 5);
   });
 
   test("no decision recorded falls back to the full amount", () => {

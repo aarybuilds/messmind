@@ -12,9 +12,28 @@ function amount(d) {
   return d.unit === 'pcs' ? `${d.amount} pcs` : `${d.amount} ${d.unit}`
 }
 
+export function describeShare(share) {
+  if (share === 0) return 'held'
+  if (share === 1) return 'all cooked'
+  return `${Math.round(share * 100)}% cooked`
+}
+
 export default function ServicePanel({ service, onCheckIn, onDecision, busy }) {
   const [exact, setExact] = useState('')
+  const [changing, setChanging] = useState(false)
   const { advice } = service
+
+  // the advised choice gets the solid button
+  const choices = [{ share: 1, label: 'Cook all of it', advised: advice?.action === 'cook' }]
+  if (advice?.action === 'partial') {
+    choices.push({ share: advice.fraction, label: `Cook ${Math.round(advice.fraction * 100)}% of it`, advised: true })
+  }
+  choices.push({ share: 0, label: 'Hold it', advised: advice?.action === 'hold' })
+
+  function decide(share) {
+    setChanging(false)
+    onDecision(share)
+  }
 
   function saveExact(e) {
     e.preventDefault()
@@ -69,22 +88,26 @@ export default function ServicePanel({ service, onCheckIn, onDecision, busy }) {
             </p>
           )}
 
-          {service.decision === null ? (
+          {service.decision === null || changing ? (
             <>
               <div className="decide">
-                <button disabled={busy} onClick={() => onDecision(true)}>
-                  Cooking it
-                </button>
-                <button className="secondary" disabled={busy} onClick={() => onDecision(false)}>
-                  Holding it
-                </button>
+                {choices.map((c) => (
+                  <button
+                    key={c.label}
+                    className={c.advised ? '' : 'secondary'}
+                    disabled={busy}
+                    onClick={() => decide(c.share)}
+                  >
+                    {c.label}
+                  </button>
+                ))}
               </div>
               <p className="muted small">Decide by {formatTime(service.decideBy)}</p>
             </>
           ) : (
             <p className="decided">
-              Recorded: held-back batch {service.decision ? 'cooked' : 'held'}.{' '}
-              <button className="link" disabled={busy} onClick={() => onDecision(!service.decision)}>
+              Recorded: held-back batch {describeShare(service.decision)}.{' '}
+              <button className="link" disabled={busy} onClick={() => setChanging(true)}>
                 Change
               </button>
             </p>

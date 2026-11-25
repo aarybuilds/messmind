@@ -29,7 +29,7 @@ async function main() {
     [slot.slot_id, minutesIn]
   );
   await pool.query("DELETE FROM check_ins WHERE slot_id = $1", [slot.slot_id]);
-  await pool.query("UPDATE slot_dishes SET held_back_cooked = NULL WHERE slot_id = $1", [slot.slot_id]);
+  await pool.query("UPDATE slot_dishes SET held_back_share = NULL WHERE slot_id = $1", [slot.slot_id]);
   const forecast = await forecastSlot(slot.slot_id);
 
   if (done) {
@@ -40,7 +40,7 @@ async function main() {
          ($1, $2, NOW() - INTERVAL '100 minutes'), ($1, $3, NOW() - INTERVAL '10 minutes')`,
       [slot.slot_id, Math.round(turnout * 0.6), turnout]
     );
-    await pool.query("UPDATE slot_dishes SET held_back_cooked = true WHERE slot_id = $1", [slot.slot_id]);
+    await pool.query("UPDATE slot_dishes SET held_back_share = 1 WHERE slot_id = $1", [slot.slot_id]);
     await pool.query("UPDATE meal_slots SET state = 'staged_decision' WHERE slot_id = $1", [slot.slot_id]);
     console.log(`${slot.slot_type} on ${slot.day} finished 5 minutes ago with ${turnout} checked in`);
   } else {

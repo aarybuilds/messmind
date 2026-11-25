@@ -68,7 +68,7 @@ CREATE TABLE slot_dishes (
     dish_id             INT NOT NULL REFERENCES dishes(dish_id),
     recommended_qty     DECIMAL(8,2),
     first_batch_qty     DECIMAL(8,2),
-    held_back_cooked    BOOLEAN,
+    held_back_share     DECIMAL(3,2),  -- 0 = held, 1 = all cooked, between = part (null = not decided)
     PRIMARY KEY (slot_id, dish_id)
 );
 

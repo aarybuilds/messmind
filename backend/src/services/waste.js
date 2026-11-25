@@ -28,7 +28,7 @@ async function logWaste(slotId, entries) {
 
     const { rows: dishes } = await client.query(
       `SELECT sd.dish_id, d.name, d.unit, d.consumption_rate, sd.recommended_qty,
-              sd.first_batch_qty, sd.held_back_cooked
+              sd.first_batch_qty, sd.held_back_share
        FROM slot_dishes sd JOIN dishes d ON d.dish_id = sd.dish_id
        WHERE sd.slot_id = $1 FOR UPDATE OF d`,
       [slotId]
@@ -61,7 +61,7 @@ async function logWaste(slotId, entries) {
 
       if (d.recommended_qty === null) continue; // never forecast, nothing to compare with
       const oldRate = Number(d.consumption_rate);
-      const result = updatedRate(oldRate, preparedQuantity(d, d.held_back_cooked), level, attendance);
+      const result = updatedRate(oldRate, preparedQuantity(d, d.held_back_share), level, attendance);
       if (!result) continue;
 
       await client.query("UPDATE dishes SET consumption_rate = $2 WHERE dish_id = $1", [d.dish_id, result.rate]);
