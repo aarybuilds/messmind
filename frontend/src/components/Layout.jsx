@@ -3,7 +3,10 @@ import { useAuth } from '../AuthContext'
 import './Layout.css'
 
 const links = {
-  student: [{ to: '/student', label: 'My Meals' }],
+  student: [
+    { to: '/student', label: 'My Meals' },
+    { to: '/student/history', label: 'History' },
+  ],
   staff: [{ to: '/staff', label: 'Dashboard' }],
   admin: [
     { to: '/admin', label: 'Overview' },
