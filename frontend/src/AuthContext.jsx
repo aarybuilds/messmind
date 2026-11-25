@@ -5,14 +5,11 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // only need to wait if there is a saved token to check
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('token')))
 
-  // if a token is already saved, check it is still valid
   useEffect(() => {
-    if (!localStorage.getItem('token')) {
-      setLoading(false)
-      return
-    }
+    if (!localStorage.getItem('token')) return
     api('/auth/me')
       .then(setUser)
       .catch(() => localStorage.removeItem('token'))
