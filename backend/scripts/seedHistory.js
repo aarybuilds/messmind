@@ -4,6 +4,8 @@
 require("dotenv").config();
 const pool = require("../src/db/pool");
 const { createSlot, ensureUpcomingSlots, refreshSlotStates } = require("../src/services/slots");
+const { forecastSlot } = require("../src/services/forecast");
+const { recalibrateSlot } = require("../src/services/recalibrate");
 
 const DAYS_OF_HISTORY = 35;
 const DEMO_STUDENT = "lcb2025101@iiitl.ac.in"; // left unmarked for upcoming slots so the demo starts clean
@@ -105,6 +107,16 @@ async function main() {
   await bulkInsert("meal_marks", ["user_id", "slot_id", "intent_to_eat", "marked_at"], ["int", "int", "bool", "timestamptz"], marks);
   await bulkInsert("attendance_records", ["user_id", "slot_id"], ["int", "int"], attendance);
   await pool.query("UPDATE meal_slots SET state = 'model_updated' WHERE service_ends_at < NOW()");
+
+  // Replay the month in order: forecast each meal as it would have been at its
+  // cut-off, then learn from it before moving on. No forecast sees the future.
+  const { rows: ordered } = await pool.query(
+    "SELECT slot_id, marking_closes_at FROM meal_slots WHERE service_ends_at < NOW() ORDER BY service_starts_at"
+  );
+  for (const s of ordered) {
+    await forecastSlot(s.slot_id, { asOf: s.marking_closes_at });
+    await recalibrateSlot(s.slot_id);
+  }
 
   // declarations for upcoming slots that are still open
   await ensureUpcomingSlots(7);
