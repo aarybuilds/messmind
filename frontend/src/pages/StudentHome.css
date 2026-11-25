@@ -1,0 +1,91 @@
+.note {
+  max-width: 40rem;
+  color: var(--muted);
+  margin-top: 0;
+}
+
+.day {
+  margin-top: 1.75rem;
+}
+
+.day h2 {
+  font-size: 1.25rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.meal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.meal-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brown);
+  border-radius: 6px;
+  padding: 1rem 1.1rem;
+}
+
+.meal-card.closed {
+  border-left-color: var(--line);
+  opacity: 0.8;
+}
+
+.meal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.meal-head h3 {
+  margin: 0;
+}
+
+.meal-time {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.menu {
+  font-size: 0.92rem;
+  margin: 0.35rem 0 0.9rem;
+}
+
+.toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--slate);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggle button {
+  background: transparent;
+  color: var(--slate);
+  border-radius: 0;
+  padding: 0.6rem;
+}
+
+.toggle button + button {
+  border-left: 1px solid var(--slate);
+}
+
+.toggle button.on.yes {
+  background: var(--ok);
+  color: #fff;
+}
+
+.toggle button.on.no {
+  background: var(--slate);
+  color: #fff;
+}
+
+.cutoff,
+.locked {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0.6rem 0 0;
+}
