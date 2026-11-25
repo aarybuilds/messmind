@@ -263,3 +263,99 @@ A student without enough personal history inherits the segment parameter for the
 | NFR-7 | The student interface shall be usable without horizontal scrolling at a 360 px viewport. | Browser device emulation. |
 | NFR-8 | Passwords shall be stored salted and hashed, and authorisation enforced server-side on every request. | No endpoint relies on client-side role checks. |
 | NFR-9 | Forecasting logic shall sit behind one service interface so the refinement layer can be replaced without touching the API or interface layers. | Substituting the estimator requires no edit outside the prediction module. |
+
+---
+
+## 4 External Interface Requirements
+
+**User interfaces.** The student view lists upcoming meal slots with a two-state control per slot and a visible cut-off time, plus a personal history view. The staff dashboard is a single screen for the current slot showing expected attendance with its group breakdown, per-dish quantity in kitchen units, the first-batch figure, a check-in entry control and the cook-or-hold prompt. The waste logging form has one row per dish with four options. The admin console covers accounts, meal slots, parameters and aggregate analytics.
+
+**Hardware interfaces.** No dedicated hardware is needed. Where the hostel already has a mess-card reader, the system can use its events as the check-in signal; otherwise staff enter a manual tally. No weighing equipment is used (CON-5).
+
+**Software interfaces.** The client talks to the server as JSON over a REST API with bearer-token authentication. The server uses PostgreSQL over a pooled connection, and calls the prediction module through a single internal service interface. Reminders are delivered through a browser or email notification provider.
+
+**Communication interfaces.** All traffic uses HTTPS. The student interface confirms a declaration only once the server acknowledges it, so a dropped connection leaves the declaration unrecorded rather than silently lost — a case the forecast already handles, since undeclared students are predicted from their baseline rate.
+
+---
+
+## 5 System Models
+
+The models below are different views of the same system. Section 6 maps each requirement to the models that realise it.
+
+### 5.1 Data Flow Diagrams
+
+The level 0 diagram fixes the system boundary. Three external entities interact with MessMind and no other external system is needed.
+
+![Data flow diagram — level 0](diagrams/dfd-level0.png)
+
+*Figure 5.1 — Data flow diagram, level 0 (context)*
+
+The level 1 decomposition is shown in two halves so it stays readable. The first covers the path from a declaration to the quantity plan that reaches the kitchen.
+
+![Level 1 — forecasting path](diagrams/dfd-level1-forecasting.png)
+
+*Figure 5.2 — Level 1, forecasting path (processes 1.0 to 3.0)*
+
+The second covers what happens during and after service: the staged-batch decision, the recalibration that closes the loop, and the aggregation feeding the analytics.
+
+![Level 1 — service and feedback path](diagrams/dfd-level1-service.png)
+
+*Figure 5.3 — Level 1, service and feedback path (processes 4.0 to 6.0)*
+
+### 5.2 Use Case Diagram
+
+The Prediction Engine appears as a secondary actor. Modelling it that way makes it explicit that forecasting and recalibration are triggered by the system itself, not by any human user.
+
+![Use case diagram](diagrams/use-case.png)
+
+*Figure 5.4 — Use case diagram*
+
+### 5.3 Class Diagram
+
+The class model separates the three user types from the domain entities and keeps forecasting behaviour in a `PredictionEngine` service class. `ReliabilityProfile` is a class of its own rather than attributes on `Student`, because it is updated by recalibration (FR-10), not by account management (FR-22).
+
+![Class diagram](diagrams/class.png)
+
+*Figure 5.5 — Class diagram*
+
+### 5.4 Entity-Relationship Diagram
+
+The logical data model realises the class model in relational form. Reliability parameters sit in a separate table from the user record so recalibration writes do not contend with account updates, and so the privacy boundary of NFR-1 can be enforced at the query layer.
+
+![Entity-relationship diagram](diagrams/er.png)
+
+*Figure 5.6 — Entity-relationship diagram*
+
+### 5.5 Sequence Diagram
+
+This sequence traces a single declaration through to the figure the kitchen acts on, showing where the reliability weighting and the safety buffer are applied.
+
+![Sequence diagram](diagrams/sequence.png)
+
+*Figure 5.7 — Meal declaration to quantity recommendation*
+
+### 5.6 Activity Diagram
+
+The service activity contains the only loop in the system that runs against the clock, and the decision that separates a dashboard from a control system: whether to commit the held-back batch.
+
+![Activity diagram](diagrams/activity.png)
+
+*Figure 5.8 — Service window and feedback loop*
+
+### 5.7 State Transition Diagram
+
+A meal slot moves through a fixed lifecycle. Modelling it as a state machine lets the system reject operations that are invalid for the current state, most importantly a change to a declaration after the marking window has closed (FR-4).
+
+![State transition diagram](diagrams/state.png)
+
+*Figure 5.9 — Meal slot lifecycle*
+
+### 5.8 The Feedback Loop
+
+The models above describe structure and sequence. This one describes the property that gives the system its value over time: the forecast is a loop whose error is measured and fed back, not a one-way prediction.
+
+A canteen ordering system records what was ordered. MessMind records what was prepared, what was served and what remained, then uses the difference to correct the parameters that produced the recommendation. Every completed meal makes the next forecast better, so accuracy depends on how long the system has been running rather than on how carefully it was configured.
+
+![The closed loop](diagrams/feedback-loop.png)
+
+*Figure 5.10 — The closed loop: declaration, forecast, measurement, correction*
