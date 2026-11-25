@@ -25,7 +25,7 @@ router.get("/", async (req, res) => {
 
   const { rows } = await pool.query(
     `SELECT user_id AS id, name, email, role, is_active
-     FROM users ${where} ORDER BY role DESC, name LIMIT 200`,
+     FROM users ${where} ORDER BY role DESC, name LIMIT 50`,
     params
   );
   res.json(rows);

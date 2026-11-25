@@ -106,8 +106,8 @@ export default function AdminUsers() {
               ))}
             </tbody>
           </table>
-          {users.length === 200 && (
-            <p className="muted">Showing the first 200. Use search to narrow down.</p>
+          {users.length === 50 && (
+            <p className="muted">Showing the first 50. Use search to narrow down.</p>
           )}
         </section>
 
