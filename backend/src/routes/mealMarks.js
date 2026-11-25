@@ -30,6 +30,23 @@ router.get("/upcoming", async (req, res) => {
   res.json(rows);
 });
 
+// GET /api/meal-marks/history - my last 30 days (FR-5). Only my own record.
+router.get("/history", async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT m.slot_id, to_char(m.slot_date, 'YYYY-MM-DD') AS date, m.slot_type AS type,
+            mm.intent_to_eat,
+            (a.user_id IS NOT NULL) AS attended
+     FROM meal_slots m
+     LEFT JOIN meal_marks mm ON mm.slot_id = m.slot_id AND mm.user_id = $1
+     LEFT JOIN attendance_records a ON a.slot_id = m.slot_id AND a.user_id = $1
+     WHERE m.service_ends_at < NOW()
+       AND m.slot_date >= (NOW() AT TIME ZONE 'Asia/Kolkata')::date - 30
+     ORDER BY m.service_starts_at DESC`,
+    [req.user.id]
+  );
+  res.json(rows);
+});
+
 // cut-off check is part of the same query so a late request can never slip in (FR-4)
 async function slotClosedResponse(slotId, res) {
   const { rows } = await pool.query(
