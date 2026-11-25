@@ -36,6 +36,9 @@ CREATE TABLE reliability_profiles (
     no_attended       INT NOT NULL DEFAULT 0,
     none_total        INT NOT NULL DEFAULT 0,
     none_attended     INT NOT NULL DEFAULT 0,
+    -- sum of segment baseline rates over the slots this student left undeclared,
+    -- used to compare them with an average student in the same meals
+    none_expected     DECIMAL(10,3) NOT NULL DEFAULT 0,
     sample_size       INT NOT NULL DEFAULT 0,
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -48,6 +51,7 @@ CREATE TABLE meal_slots (
     service_starts_at TIMESTAMPTZ NOT NULL,
     service_ends_at   TIMESTAMPTZ NOT NULL,
     state             slot_state  NOT NULL DEFAULT 'scheduled',
+    recalibrated_at   TIMESTAMPTZ,
     UNIQUE (slot_date, slot_type)
 );
 
@@ -128,7 +132,9 @@ CREATE TABLE settings (
 INSERT INTO settings (key, value) VALUES
     ('safety_buffer', 0.08),
     ('first_batch_split', 0.75),
-    ('flat_attendance_rate', 0.65),
+    ('flat_attendance_rate', 0.65),  -- stage 0 baseline
+    ('default_reliability', 0.90),   -- stage 0 weight for "eating"
+    ('default_flip_rate', 0.10),     -- stage 0 weight for "not eating"
     ('reminder_hours', 3);
 
 CREATE INDEX idx_marks_slot ON meal_marks(slot_id);
