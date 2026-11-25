@@ -9,7 +9,8 @@
     "dev": "node --watch src/index.js",
     "db:init": "node scripts/initDb.js",
     "db:seed": "node scripts/seed.js",
-    "db:reset": "npm run db:init && npm run db:seed"
+    "db:reset": "npm run db:init && npm run db:seed && npm run db:history",
+    "db:history": "node scripts/seedHistory.js"
   },
   "keywords": [],
   "author": "Aary Garge",
