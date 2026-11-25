@@ -77,6 +77,27 @@ Demo accounts (password `messmind123`):
 | Mess staff | staff1@iiitl.ac.in |
 | Student | lcb2025101@iiitl.ac.in |
 
+## Deployment (free tiers)
+
+| Part | Service | Notes |
+| --- | --- | --- |
+| Database | [Neon](https://neon.tech) Postgres | free tier, does not expire |
+| API | [Render](https://render.com) web service | free; sleeps after 15 min idle, first request takes ~30-60 s |
+| Frontend | [Vercel](https://vercel.com) | free hobby plan |
+
+1. **Neon**: create a project (region Singapore), copy the connection string, then load the demo data:
+   ```bash
+   cd backend
+   DATABASE_URL="<neon connection string>" DB_SSL=true npm run db:reset
+   ```
+2. **Render**: New → Blueprint → this repo. It reads `render.yaml`. Fill in `DATABASE_URL` (the Neon string)
+   and `CLIENT_URL` (the Vercel URL from step 3; use `http://localhost:5173` until then).
+3. **Vercel**: import this repo, set **Root Directory** to `frontend`, add `VITE_API_URL` = the Render URL
+   (e.g. `https://messmind-api.onrender.com`), deploy.
+4. Back on Render, set `CLIENT_URL` to the Vercel URL so the browser is allowed to call the API.
+
+The demo data is relative to the day it is loaded, so re-run step 1 shortly before a demo.
+
 ## How the forecast works
 
 For each meal, every student counts towards the forecast whether or not they marked:
