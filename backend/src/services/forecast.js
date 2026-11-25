@@ -3,6 +3,7 @@
 const pool = require("../db/pool");
 const { expectedAttendance, applyBuffer, dishPlan, round1 } = require("./estimator");
 const { globalStage, weightsFor, forecastStage, smoothedRate } = require("./parameters");
+const { refineEstimate, SPECIAL_DISHES } = require("./refiner");
 
 async function loadSettings(db = pool) {
   const { rows } = await db.query("SELECT key, value FROM settings");
@@ -122,13 +123,31 @@ async function forecastSlot(slotId, { asOf = null, save = true, db = pool } = {}
   );
   const plans = dishes.map((d) => dishPlan(headcount, d, settings.first_batch_split));
 
+  // stage 3: show the regression estimate alongside, never instead of, the formula
+  let mlEstimate = null;
+  if (stage === 3) {
+    try {
+      mlEstimate = await refineEstimate(
+        {
+          ...result,
+          type: slot.slot_type,
+          dow: slot.dow,
+          special: dishes.some((d) => SPECIAL_DISHES.includes(d.name)),
+        },
+        { asOf, db }
+      );
+    } catch (err) {
+      mlEstimate = null; // the formula keeps working without it (CON-4)
+    }
+  }
+
   const forecast = {
     slot_id: slot.slot_id,
     date: slot.date,
     type: slot.slot_type,
     stage: forecastStage(stage, students.length ? personal / students.length : 0),
     ...result,
-    mlEstimate: null,
+    mlEstimate,
     buffer,
     headcount,
     firstBatchSplit: settings.first_batch_split,
