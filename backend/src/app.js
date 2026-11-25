@@ -26,7 +26,7 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err);
+  if (!err.status || err.status >= 500) console.error(err);
   res.status(err.status || 500).json({ error: err.message || "Something went wrong" });
 });
 
