@@ -11,9 +11,11 @@ async function loadSettings(db = pool) {
   return s;
 }
 
+// asOf = null means "now" (database clock), otherwise a point in the past when replaying
 async function completedSlotCount(asOf, db = pool) {
   const { rows } = await db.query(
-    "SELECT COUNT(*)::int AS n FROM meal_slots WHERE recalibrated_at IS NOT NULL AND service_ends_at <= $1",
+    `SELECT COUNT(*)::int AS n FROM meal_slots
+     WHERE recalibrated_at IS NOT NULL AND service_ends_at <= COALESCE($1::timestamptz, NOW())`,
     [asOf]
   );
   return rows[0].n;
@@ -26,7 +28,8 @@ async function segmentRates(slot, asOf, defaults, db = pool) {
     `WITH done AS (
        SELECT slot_id, EXTRACT(DOW FROM slot_date)::int AS dow
        FROM meal_slots
-       WHERE slot_type = $1 AND recalibrated_at IS NOT NULL AND service_ends_at <= $2
+       WHERE slot_type = $1 AND recalibrated_at IS NOT NULL
+         AND service_ends_at <= COALESCE($2::timestamptz, NOW())
      )
      SELECT d.dow,
        COUNT(*) FILTER (WHERE mm.intent_to_eat)                                 AS yes_total,
@@ -39,7 +42,7 @@ async function segmentRates(slot, asOf, defaults, db = pool) {
      CROSS JOIN users u
      LEFT JOIN meal_marks mm ON mm.slot_id = d.slot_id AND mm.user_id = u.user_id
      LEFT JOIN attendance_records a ON a.slot_id = d.slot_id AND a.user_id = u.user_id
-     WHERE u.role = 'student'
+     WHERE u.role = 'student' AND u.is_active
      GROUP BY d.dow`,
     [slot.slot_type, asOf]
   );
@@ -73,7 +76,7 @@ async function loadSlot(slotId, db = pool) {
 }
 
 // Forecast one slot. asOf lets the history be replayed without seeing the future.
-async function forecastSlot(slotId, { asOf = new Date(), save = true, db = pool } = {}) {
+async function forecastSlot(slotId, { asOf = null, save = true, db = pool } = {}) {
   const slot = await loadSlot(slotId, db);
   if (!slot) return null;
 
@@ -91,7 +94,8 @@ async function forecastSlot(slotId, { asOf = new Date(), save = true, db = pool 
     `SELECT p.*, mm.intent_to_eat
      FROM users u
      JOIN reliability_profiles p ON p.user_id = u.user_id
-     LEFT JOIN meal_marks mm ON mm.user_id = u.user_id AND mm.slot_id = $1 AND mm.marked_at <= $2
+     LEFT JOIN meal_marks mm ON mm.user_id = u.user_id AND mm.slot_id = $1
+       AND mm.marked_at <= COALESCE($2::timestamptz, NOW())
      WHERE u.role = 'student' AND u.is_active`,
     [slotId, asOf]
   );
@@ -129,7 +133,7 @@ async function forecastSlot(slotId, { asOf = new Date(), save = true, db = pool 
     headcount,
     firstBatchSplit: settings.first_batch_split,
     dishes: plans,
-    computedAt: asOf,
+    computedAt: asOf || new Date(),
   };
 
   if (save) await saveForecast(forecast, db);
