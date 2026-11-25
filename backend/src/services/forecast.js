@@ -31,6 +31,8 @@ async function segmentRates(slot, asOf, defaults, db = pool) {
        FROM meal_slots
        WHERE slot_type = $1 AND recalibrated_at IS NOT NULL
          AND service_ends_at <= COALESCE($2::timestamptz, NOW())
+         -- only meals where we know who actually came
+         AND EXISTS (SELECT 1 FROM attendance_records a WHERE a.slot_id = meal_slots.slot_id)
      )
      SELECT d.dow,
        COUNT(*) FILTER (WHERE mm.intent_to_eat)                                 AS yes_total,

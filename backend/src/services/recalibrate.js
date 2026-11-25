@@ -20,6 +20,14 @@ async function recalibrateSlot(slotId) {
       return false; // already done
     }
 
+    // No per-student attendance (no mess-card data for this meal): we can't tell who
+    // came, so profiles are left alone rather than treating everyone as absent.
+    const { rows: att } = await client.query(
+      "SELECT COUNT(*)::int AS n FROM attendance_records WHERE slot_id = $1",
+      [slotId]
+    );
+    const haveAttendance = att[0].n > 0;
+
     // segment baseline as it was before this meal, for the "expected" counter
     const settings = await loadSettings(client);
     const defaults = {
@@ -30,7 +38,7 @@ async function recalibrateSlot(slotId) {
     const segment = await segmentRates(slot, slot.service_starts_at, defaults, client);
     const segmentB = segment ? segment.b : defaults.b;
 
-    await client.query(
+    if (haveAttendance) await client.query(
       `UPDATE reliability_profiles p SET
          yes_total     = yes_total     + (c.intent IS TRUE)::int,
          yes_attended  = yes_attended  + (c.intent IS TRUE AND c.attended)::int,
@@ -53,21 +61,27 @@ async function recalibrateSlot(slotId) {
     );
 
     // plain rates, kept for reference (the forecast uses the counts)
-    await client.query(
+    if (haveAttendance) await client.query(
       `UPDATE reliability_profiles SET
          reliability_score = yes_attended::decimal / NULLIF(yes_total, 0),
          flip_rate         = no_attended::decimal / NULLIF(no_total, 0),
          baseline_rate     = none_attended::decimal / NULLIF(none_total, 0)`
     );
 
+    // actual turnout: mess-card records if we have them, otherwise the final check-in tally
+    const { rows: tally } = await client.query(
+      "SELECT count FROM check_ins WHERE slot_id = $1 ORDER BY logged_at DESC, checkin_id DESC LIMIT 1",
+      [slotId]
+    );
+    const actual = haveAttendance ? att[0].n : tally[0] ? tally[0].count : null;
+
     // forecast error (FR-21): positive means we planned for more than came
     await client.query(
-      `UPDATE attendance_predictions p SET
-         actual_attendance = a.n,
-         forecast_error = CASE WHEN a.n > 0 THEN (p.recommended_qty - a.n)::decimal / a.n END
-       FROM (SELECT COUNT(*)::int AS n FROM attendance_records WHERE slot_id = $1) a
-       WHERE p.slot_id = $1`,
-      [slotId]
+      `UPDATE attendance_predictions SET
+         actual_attendance = $2::int,
+         forecast_error = CASE WHEN $2::int > 0 THEN (recommended_qty - $2::int)::decimal / $2::int END
+       WHERE slot_id = $1`,
+      [slotId, actual]
     );
 
     await client.query(
