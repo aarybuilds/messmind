@@ -160,3 +160,106 @@ The system is a responsive web application. Students use a mobile browser; mess 
 The team follows an incremental model rather than a waterfall. The reason is that the requirements themselves changed during the first week: staged cooking and leftover logging were only added after the operational assumptions in Section 2.6 were checked, and a model that fixes everything before construction starts would not have allowed that.
 
 Scope, however, was fixed early. Section 1.2 is treated as closed, so iteration applies to how a feature is built, not to which problem is being solved. Work is split into five short increments: schema and authentication; meal marking; the prediction engine; the staff dashboard and quantity recommendation; and waste logging with recalibration. Git is used throughout, with one feature branch per module and a pull request reviewed by another member before merge.
+
+---
+
+## 3 Specific Requirements
+
+Each requirement is written so that it can be checked individually. Priority is High (needed for the baseline demonstration), Medium (needed for a complete system) or Low (desirable).
+
+### 3.1 Functional Requirements
+
+#### 3.1.1 Access Control and Meal Intent
+
+| ID | Requirement | Priority |
+| --- | --- | --- |
+| FR-1 | The system shall authenticate every user by institute email address and password before granting access to any module. | High |
+| FR-2 | The system shall assign one role to each account — Student, Mess Staff or Admin — and enforce access against that role on the server side. | High |
+| FR-3 | A Student shall be able to declare intent to eat or not eat for each upcoming meal slot, and change it any time until the marking cut-off. | High |
+| FR-4 | The system shall reject any declaration or amendment made after the marking window has closed. | High |
+| FR-5 | A Student shall be able to view their own declarations and attendance for the preceding thirty days. | Medium |
+| FR-6 | The system shall remind a Student who has not declared, at a configurable interval before the cut-off. | Medium |
+| FR-7 | The system shall treat a declaration as an observation only. No fee, refund, penalty or entitlement shall be derived from it. | High |
+
+#### 3.1.2 Attendance Forecasting
+
+| ID | Requirement | Priority |
+| --- | --- | --- |
+| FR-8 | The system shall compute expected attendance for each meal slot as the sum of three weighted groups: students who declared they would eat, weighted by reliability score; students who declared they would not, weighted by flip rate; and students who declared nothing, weighted by baseline rate. | High |
+| FR-9 | The system shall maintain a reliability score, flip rate and baseline rate for every Student, derived only from that student's own history. | High |
+| FR-10 | The system shall recompute the affected student parameters after each completed meal slot. | High |
+| FR-11 | The system shall produce a usable forecast when no per-student history exists, using institute-level and then segment-level baselines as given in Section 3.2.2. | High |
+| FR-12 | The system shall adjust expected attendance upward by a configurable safety buffer before issuing any recommendation. | High |
+| FR-13 | The system may compute a refined forecast from a regression model. Where computed, it shall be shown alongside the deterministic forecast, and the deterministic forecast shall be used whenever the model is unavailable or under-trained. | Low |
+
+#### 3.1.3 Quantity Recommendation and Staged Cooking
+
+| ID | Requirement | Priority |
+| --- | --- | --- |
+| FR-14 | The system shall convert expected attendance into a recommended quantity for each dish, using that dish's current per-head consumption rate. | High |
+| FR-15 | The system shall split the recommended quantity into a first batch and a held-back batch, defaulting to 75 and 25 per cent. | High |
+| FR-16 | Mess Staff shall be able to record cumulative check-in counts during the service window. | High |
+| FR-17 | The system shall compare the observed arrival rate with the forecast and recommend either cooking or holding the held-back batch. | High |
+| FR-18 | The system shall show staff-facing quantities in kitchen units — kilograms, litres or batch counts — not as a headcount. | Medium |
+
+#### 3.1.4 Waste Logging, Recalibration and Administration
+
+| ID | Requirement | Priority |
+| --- | --- | --- |
+| FR-19 | Mess Staff shall be able to record a leftover level for each dish after service closes, on the scale Empty, Almost empty, Half left, Mostly full. | High |
+| FR-20 | The system shall derive the served quantity for each dish from the quantity prepared and the leftover level, and recompute that dish's per-head consumption rate. | High |
+| FR-21 | The system shall record the forecast error for every completed meal slot and retain it for analysis. | High |
+| FR-22 | Admin shall be able to create, amend and deactivate Student and Mess Staff accounts. | Medium |
+| FR-23 | Admin shall be able to define meal slots, their marking and service windows, and the dish list for each slot. | High |
+| FR-24 | Admin shall be able to configure the safety buffer and the first-batch split. | Medium |
+| FR-25 | The system shall present all staff-facing and admin-facing figures as aggregates. No screen shall show an identifiable student's declaration or attendance. | High |
+
+### 3.2 The Prediction Model
+
+This section explains the model behind FR-8 to FR-13. It is stated in full because it is what separates this system from a meal-booking application, and because CON-2 requires that any recommendation be reproducible by hand.
+
+#### 3.2.1 Why declarations are not counted directly
+
+The obvious design is to count the students who said they would eat. That fails for three reasons: students forget to declare, students declare and then change plans, and students who declared they would not eat sometimes turn up. A raw count treats every student as either present or absent, when in fact each of these three groups has a different and measurable attendance probability.
+
+MessMind therefore treats a declaration as evidence to be weighted rather than a fact to be counted. Every student carries three parameters learned from their own history, and every student contributes to the forecast whether or not they declared anything. One consequence is worth stating: the system still works if no student ever uses the marking feature. Participation improves the forecast, it is not a precondition for it.
+
+#### 3.2.2 The estimator and cold start
+
+For a meal slot, let *Y* be the students who declared they would eat, *N* those who declared they would not, and *U* those who declared nothing. Then:
+
+```
+E   = Σ(i∈Y) rᵢ  +  Σ(i∈N) fᵢ  +  Σ(i∈U) bᵢ
+E'  = E × (1 + β)          risk-adjusted attendance
+Q_d = E' × c_d             quantity to prepare for dish d
+B_d = σ × Q_d              first batch for dish d
+```
+
+The buffer β is not a safety margin bolted on at the end. The cost of error is asymmetric: a shortage turns students away, while a surplus wastes a recoverable amount of food. The buffer shifts the recommendation to a risk-adjusted level instead of a central estimate, and it is a configurable parameter (FR-24) so the mess decides where on that trade-off it wants to sit.
+
+CON-3 requires a usable recommendation on day one, so the estimator degrades through four stages, each using a coarser parameter where a finer one is not yet supported by data.
+
+**Table 3.1 — Degradation ladder for the estimator**
+
+| Stage | Data available | Parameters used | Accuracy |
+| --- | --- | --- | --- |
+| **Stage 0** | None | Institute-wide flat attendance rate for all students | Low |
+| **Stage 1** | 7 or more completed slots | Segment baselines by meal type and day of week | Moderate |
+| **Stage 2** | 15 or more observations per student | Per-student reliability, flip and baseline rates | Good |
+| **Stage 3** | 90 or more completed slots | Stage 2 plus optional regression refinement | Best available |
+
+A student without enough personal history inherits the segment parameter for their stage, so the system never has to choose between a confident claim it cannot support and no answer at all.
+
+### 3.3 Non-Functional Requirements
+
+| ID | Requirement | How it is checked |
+| --- | --- | --- |
+| NFR-1 | Per-student parameters and declaration history shall stay internal to the model and never be shown at individual level to Mess Staff or Admin. | No endpoint returns an identifiable student's record to a staff or admin credential. |
+| NFR-2 | No financial or disciplinary consequence shall attach to declaring, or not declaring, intent. | No module reads the declaration table for billing, refund or penalty. |
+| NFR-3 | The system shall return a usable forecast under cold-start conditions. | A forecast is produced with the parameter table empty. |
+| NFR-4 | Every recommendation shall show the three group contributions and the buffer that produced it. | The dashboard shows the breakdown and the figure can be reproduced by hand. |
+| NFR-5 | Dashboard figures shall reflect a new check-in within three seconds under expected load. | Measured with 500 seeded students. |
+| NFR-6 | Mess Staff shall be able to record a check-in in no more than two clicks from the dashboard. | Timed walkthrough. |
+| NFR-7 | The student interface shall be usable without horizontal scrolling at a 360 px viewport. | Browser device emulation. |
+| NFR-8 | Passwords shall be stored salted and hashed, and authorisation enforced server-side on every request. | No endpoint relies on client-side role checks. |
+| NFR-9 | Forecasting logic shall sit behind one service interface so the refinement layer can be replaced without touching the API or interface layers. | Substituting the estimator requires no edit outside the prediction module. |
