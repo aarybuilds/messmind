@@ -15,15 +15,26 @@ export default function StaffDashboard() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [rateChanges, setRateChanges] = useState(null)
+  const [leftoversDue, setLeftoversDue] = useState([])
 
-  useEffect(() => {
-    api('/staff/slots')
+  function loadSlots(pickCurrent) {
+    return api('/staff/slots')
       .then((data) => {
         setSlots(data.slots)
-        setSelected(data.currentId)
+        setLeftoversDue(data.leftoversDue)
+        if (pickCurrent) setSelected(data.currentId)
       })
       .catch((err) => setError(err.message))
+  }
+
+  useEffect(() => {
+    loadSlots(true)
   }, [])
+
+  function choose(slotId) {
+    setSelected(slotId)
+    setRateChanges(null)
+  }
 
   useEffect(() => {
     if (!selected) return
@@ -57,6 +68,7 @@ export default function StaffDashboard() {
       const result = await api(`/staff/slots/${selected}/waste`, { method: 'POST', body: { entries } })
       setRateChanges(result.changes)
       setView(result.view)
+      loadSlots(false)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -68,18 +80,29 @@ export default function StaffDashboard() {
     <>
       <PageTitle kicker="Mess Staff" title="Preparation Plan" />
 
+      {leftoversDue.length > 0 && (
+        <div className="due-banner">
+          <strong>Leftovers not logged yet:</strong>
+          {slots
+            .filter((s) => leftoversDue.includes(s.slot_id))
+            .map((s) => (
+              <button key={s.slot_id} className="secondary small" onClick={() => choose(s.slot_id)}>
+                {dayLabel(s.date).split(' · ')[0]} {mealNames[s.type].toLowerCase()} · Log now
+              </button>
+            ))}
+        </div>
+      )}
+
       <div className="meal-tabs">
         {slots.map((s) => (
           <button
             key={s.slot_id}
             className={s.slot_id === selected ? 'tab active' : 'tab'}
-            onClick={() => {
-              setSelected(s.slot_id)
-              setRateChanges(null)
-            }}
+            onClick={() => choose(s.slot_id)}
           >
             <span className="tab-day">{dayLabel(s.date).split(' · ')[0]}</span>
             {mealNames[s.type]}
+            {leftoversDue.includes(s.slot_id) && <span className="tab-due">leftovers due</span>}
           </button>
         ))}
       </div>

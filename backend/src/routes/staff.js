@@ -10,21 +10,36 @@ const router = express.Router();
 // Mess staff dashboard. Admin can look too. Aggregates only (NFR-1).
 router.use(requireAuth, requireRole("staff", "admin"));
 
-// GET /api/staff/slots - today's and tomorrow's meals, and which one to show first
+// GET /api/staff/slots - today's and tomorrow's meals, plus any finished meal from the
+// last two days still waiting for its leftovers, and which one to show first
 router.get("/slots", async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT slot_id, to_char(slot_date, 'YYYY-MM-DD') AS date, slot_type AS type, state,
-            service_starts_at, service_ends_at,
-            NOW() BETWEEN service_starts_at AND service_ends_at AS in_service_window
-     FROM meal_slots
-     WHERE slot_date BETWEEN (NOW() AT TIME ZONE 'Asia/Kolkata')::date
-                         AND (NOW() AT TIME ZONE 'Asia/Kolkata')::date + 1
-     ORDER BY service_starts_at`
+    `SELECT m.slot_id, to_char(m.slot_date, 'YYYY-MM-DD') AS date, m.slot_type AS type, m.state,
+            m.service_starts_at, m.service_ends_at,
+            NOW() BETWEEN m.service_starts_at AND m.service_ends_at AS in_service_window,
+            (m.service_ends_at < NOW()
+              AND NOT EXISTS (SELECT 1 FROM waste_logs w WHERE w.slot_id = m.slot_id)) AS leftovers_due
+     FROM meal_slots m
+     WHERE m.slot_date BETWEEN (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+                           AND (NOW() AT TIME ZONE 'Asia/Kolkata')::date + 1
+        OR (m.service_ends_at BETWEEN NOW() - INTERVAL '2 days' AND NOW()
+            AND NOT EXISTS (SELECT 1 FROM waste_logs w WHERE w.slot_id = m.slot_id))
+     ORDER BY m.service_starts_at`
   );
   const now = Date.now();
+  const justFinished = rows.find(
+    (r) => r.leftovers_due && now - new Date(r.service_ends_at) < 3 * 3600 * 1000
+  );
   const current =
-    rows.find((r) => r.in_service_window) || rows.find((r) => new Date(r.service_ends_at) > now) || rows[0];
-  res.json({ slots: rows, currentId: current ? current.slot_id : null });
+    rows.find((r) => r.in_service_window) ||
+    justFinished ||
+    rows.find((r) => new Date(r.service_ends_at) > now) ||
+    rows[0];
+  res.json({
+    slots: rows,
+    currentId: current ? current.slot_id : null,
+    leftoversDue: rows.filter((r) => r.leftovers_due).map((r) => r.slot_id),
+  });
 });
 
 // Everything the dashboard needs for one meal
