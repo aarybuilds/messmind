@@ -25,9 +25,14 @@ export default function StaffDashboard() {
 
   useEffect(() => {
     if (!selected) return
-    api(`/staff/slots/${selected}`)
-      .then(setView)
-      .catch((err) => setError(err.message))
+    const load = () =>
+      api(`/staff/slots/${selected}`)
+        .then(setView)
+        .catch((err) => setError(err.message))
+    load()
+    // another counter may be logging check-ins too
+    const timer = setInterval(load, 30 * 1000)
+    return () => clearInterval(timer)
   }, [selected])
 
   // both return the refreshed view, so the screen updates straight away (NFR-5)
