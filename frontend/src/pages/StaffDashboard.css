@@ -251,3 +251,79 @@ button.link {
     grid-template-columns: 1fr;
   }
 }
+
+.waste {
+  margin-bottom: 1.5rem;
+  border-top: 4px solid var(--sage);
+}
+
+.waste-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.waste-row .dish-name {
+  width: 110px;
+  font-weight: 600;
+}
+
+.levels {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  flex: 1;
+  border: 1px solid var(--slate);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.level {
+  background: transparent;
+  color: var(--slate);
+  border-radius: 0;
+  font-weight: 400;
+  padding: 0.5rem 0.3rem;
+  font-size: 0.9rem;
+}
+
+.level + .level {
+  border-left: 1px solid var(--slate);
+}
+
+.level.on {
+  background: var(--slate);
+  color: #fff;
+  font-weight: 600;
+}
+
+.waste > button[type='submit'] {
+  margin-top: 1rem;
+}
+
+.waste-done {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.waste-done li {
+  display: flex;
+  justify-content: space-between;
+  max-width: 320px;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+@media (max-width: 600px) {
+  .waste-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .level {
+    font-size: 0.78rem;
+  }
+}
