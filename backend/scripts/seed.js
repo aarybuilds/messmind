@@ -46,7 +46,9 @@ async function main() {
   );
 
   for (let i = 0; i < STUDENT_COUNT; i++) {
-    const name = `${firstNames[i % firstNames.length]} ${lastNames[(i * 7) % lastNames.length]}`;
+    const first = firstNames[i % firstNames.length];
+    const last = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
+    const name = `${first} ${last}`;
     const email = `${rollNumber(i).toLowerCase()}@iiitl.ac.in`;
     const { rows } = await pool.query(
       `INSERT INTO users (name, email, password_hash, role)
