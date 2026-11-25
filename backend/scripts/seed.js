@@ -30,7 +30,8 @@ const dishes = [
 
 function rollNumber(i) {
   const branch = i % 3 === 0 ? "LCB" : "LCI";
-  return `${branch}2025${String(i + 1).padStart(3, "0")}`;
+  // start at 101 so demo rolls never clash with real ones
+  return `${branch}2025${String(i + 101).padStart(3, "0")}`;
 }
 
 async function main() {
