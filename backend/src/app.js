@@ -9,7 +9,9 @@ const adminRoutes = require("./routes/admin");
 
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+// CLIENT_URL can list several origins separated by commas (e.g. the Vercel URL and localhost)
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173").split(",").map((o) => o.trim());
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {
