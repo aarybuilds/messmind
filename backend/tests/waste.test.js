@@ -1,4 +1,4 @@
-const { app, pool, request, resetDb, tokenFor } = require("./helpers");
+const { app, pool, request, resetDb, tokenFor, uniqueDay } = require("./helpers");
 
 let staff;
 
@@ -6,9 +6,10 @@ let staff;
 async function finishedMeal({ ate = 100, heldBackShare = 1 } = {}) {
   const { rows } = await pool.query(
     `INSERT INTO meal_slots (slot_date, slot_type, marking_closes_at, service_starts_at, service_ends_at, state)
-     VALUES (CURRENT_DATE - (random() * 1000)::int - 1, 'lunch', NOW() - INTERVAL '8 hours',
+     VALUES (CURRENT_DATE - $1::int, 'lunch', NOW() - INTERVAL '8 hours',
              NOW() - INTERVAL '4 hours', NOW() - INTERVAL '2 hours', 'in_service')
-     RETURNING slot_id`
+     RETURNING slot_id`,
+    [uniqueDay()]
   );
   const slot = rows[0].slot_id;
 
