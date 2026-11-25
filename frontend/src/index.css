@@ -133,3 +133,18 @@ label {
 .title-bar span:nth-child(3) {
   background: var(--sage);
 }
+
+.page-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 0.3rem;
+}
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1.25rem;
+}

@@ -1,9 +1,62 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider, useAuth } from './AuthContext'
+import Layout from './components/Layout'
+import ProtectedRoute from './components/ProtectedRoute'
+import Login from './pages/Login'
+import StudentHome from './pages/StudentHome'
+import StaffDashboard from './pages/StaffDashboard'
+import AdminHome from './pages/AdminHome'
+
+function HomeRedirect() {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  return <Navigate to={user ? `/${user.role}` : '/login'} replace />
+}
+
 function App() {
   return (
-    <main style={{ padding: '2rem' }}>
-      <h1>MessMind</h1>
-      <p className="muted">Smart Hostel Mess Attendance Forecasting</p>
-    </main>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          <Route
+            path="/student"
+            element={
+              <ProtectedRoute role="student">
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<StudentHome />} />
+          </Route>
+
+          <Route
+            path="/staff"
+            element={
+              <ProtectedRoute role="staff">
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<StaffDashboard />} />
+          </Route>
+
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute role="admin">
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminHome />} />
+          </Route>
+
+          <Route path="*" element={<HomeRedirect />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
