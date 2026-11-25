@@ -1,495 +1,162 @@
 # Software Requirements Specification
 
-**MessMind: Smart Hostel Mess Attendance Forecasting and Food Waste Reduction System**
+## MessMind — Smart Hostel Mess Attendance Forecasting and Food Waste Reduction System
 
-Group 24 · Software Engineering · IIIT Lucknow · B.Tech 2nd Year
-Presentation date: 2 December 2026
+| | |
+| --- | --- |
+| **Course** | Software Engineering · B.Tech (CSE / CSB), 2nd Year |
+| **Institution** | Indian Institute of Information Technology, Lucknow |
+| **Group number** | 24 |
+| **Submitted to** | Dr. Sushil Kumar Tiwari |
 
-| Member | Roll No |
+**Prepared by**
+
+| Name | Roll number |
 | --- | --- |
 | Aary Garge | LCB2025024 |
 | Advait Deshpande | LCI2025046 |
 | Pruthviraj Mane | LCI2025038 |
 | Ranveer Hajari | LCI2025043 |
 
+> The formatted submission copy is [`Group_24/SRS/MessMind_SRS_Group24.pdf`](../Group_24/SRS/MessMind_SRS_Group24.pdf).
+
 ---
 
-## 1. Introduction
+## Table of Contents
+
+1. [Introduction](#1-introduction)
+2. [Overall Description](#2-overall-description)
+3. [Specific Requirements](#3-specific-requirements)
+4. [External Interface Requirements](#4-external-interface-requirements)
+5. [System Models](#5-system-models)
+6. [Requirements Traceability Matrix](#6-requirements-traceability-matrix)
+7. [Future Enhancements](#7-future-enhancements)
+- [Appendix A — Worked Example of a Forecast](#appendix-a--worked-example-of-a-forecast)
+
+---
+
+## 1 Introduction
 
 ### 1.1 Purpose
-This document specifies the requirements for MessMind, a web-based system that forecasts
-per-meal hostel mess attendance and recommends preparation quantities, with the goal of
-reducing both food wastage and meal shortages.
 
-### 1.2 Scope
-Hostel messes currently decide how much food to cook based on the cook's experience and
-rough estimates, with no feedback on how accurate that guess was. This causes two
-recurring problems at the same mess:
+This document specifies the requirements for MessMind, a web-based system that forecasts hostel mess attendance for each meal and converts that forecast into a preparation quantity for the kitchen. It defines what the system must do, the constraints it works under, and how each requirement will be checked.
 
-- **Over-preparation** — food is cooked in excess and thrown away.
-- **Under-preparation** — food runs out before the mess closes, and the last students in
-  line get less or nothing.
+### 1.2 Scope of the Product
 
-MessMind addresses both by (1) collecting per-meal intent from students, (2) correcting
-that intent using each student's historical reliability rather than trusting it at face
-value, (3) recommending a quantity to the kitchen with a tunable safety buffer, (4)
-supporting staged cooking so the kitchen can adjust mid-meal based on live check-ins, and
-(5) logging actual leftovers so every meal improves the next prediction.
+A mess cook has to decide how much to cook several hours before he knows how many students will eat. The decision is a guess, and it gets no feedback: nobody measures how wrong yesterday's guess was, so the same error repeats. Because running short is worse than wasting food, the guess is also biased high.
 
-Out of scope for this project: meal ratings/feedback, menu voting, cost/budget analytics,
-complaints, and payments. These are explicitly excluded to keep one core problem in
-focus (see professor's presentation guidelines).
+MessMind targets that one decision. It collects what students intend to do, corrects those intentions using each student's own history, recommends a quantity per dish, and then measures what was actually left over so the next forecast is better.
 
-### 1.3 Definitions
+**Table 1.1 — Scope boundary**
+
+| In scope | Out of scope |
+| --- | --- |
+| Per-meal intent capture from students | Meal ratings and menu voting |
+| Attendance forecasting weighted by student reliability | Mess fees, billing and payments |
+| Per-dish preparation quantity recommendation | Complaint and grievance handling |
+| Staged (two-batch) cooking guidance during service | Cost and procurement analytics |
+| Leftover logging after each meal | Inventory and stock management |
+| Automatic recalibration of forecast parameters | Nutrition and dietary tracking |
+
+The exclusions are intentional. Each is a separate problem, and including any of them would dilute the single problem this project addresses.
+
+### 1.3 Definitions and Abbreviations
+
 | Term | Meaning |
 | --- | --- |
-| Meal slot | One of Breakfast, Lunch, Dinner on a given date |
-| Opt-in/Opt-out | A student's declared intent to eat or skip a meal slot |
-| Reliability score | A student's historical rate of actually showing up given their declared intent |
-| Baseline rate | A student's historical attendance rate when they declare nothing |
-| Staged cooking | Preparing a first batch (~75%) before the meal opens, then a decision on
-  the remaining batch based on live check-in rate |
-| Container-level waste estimate | Leftover logged per dish as Empty / Almost Empty / Half
-  Left / Mostly Full, instead of exact weight |
+| **Meal slot** | One of Breakfast, Lunch or Dinner on a given date. The unit of forecasting. |
+| **Declaration** | A student's statement that they will or will not eat a meal slot. Treated as evidence, not as a commitment. |
+| **Marking window** | The period during which declarations can be made or changed. It ends at the marking cut-off. |
+| **Reliability score (r)** | How often a student who declared "eating" actually attended. |
+| **Flip rate (f)** | How often a student who declared "not eating" attended anyway. |
+| **Baseline rate (b)** | A student's attendance rate on slots where they declared nothing. |
+| **Safety buffer (β)** | A configurable upward adjustment to the forecast, because a shortage costs more than a surplus. |
+| **Staged cooking** | Cooking a first batch before service, then deciding during service whether to cook the rest. |
+| **Leftover level** | A four-point estimate of what remains in a container: Empty, Almost empty, Half left, Mostly full. |
+| **Cold start** | The state in which the system has too little history to compute per-student parameters. |
+| **RBAC** | Role-Based Access Control. |
+| **DFD** | Data Flow Diagram. |
 
-### 1.4 Overview
-Section 2 describes the product at a high level, including feasibility and the process
-model followed. Section 3 lists functional and non-functional requirements. Section 4
-covers external interfaces. Section 5 contains the system models (context diagram, DFD,
-use case, class, ER, sequence, activity, state diagrams).
+### 1.4 References
+
+- **IEEE Std 830-1998** — IEEE Recommended Practice for Software Requirements Specifications. The structure of this document follows this standard.
+- **Course handout and presentation guidelines**, Software Engineering, IIIT Lucknow. Source of the single-problem constraint CON-1.
+- **Project repository** — source code, this document and the presentation deck, submitted as the Group 24 folder.
 
 ---
 
-## 2. Overall Description
+## 2 Overall Description
 
 ### 2.1 Product Perspective
-MessMind is a new, standalone web application. It does not replace existing hostel
-infrastructure (mess cards, physical registers) but sits alongside it, consuming
-check-in/attendance signals where available and otherwise relying on student-declared
-intent and historical patterns.
 
-### 2.2 Product Functions (summary)
-- Students mark intent to eat for each upcoming meal slot.
-- The system predicts expected attendance per meal slot using a reliability-weighted
-  formula (with an optional ML-based refinement layer, see 2.5).
-- Mess staff see a recommended preparation quantity per dish, derived from predicted
-  attendance and per-dish consumption rates.
-- During the first ~15–20 minutes of a meal, live check-ins update the dashboard and
-  tell staff whether to cook the held-back (staged) batch.
-- Staff log leftover levels per dish after each meal (container-level estimate).
-- Logged waste and actual check-in counts feed back into reliability scores and
-  consumption rates, improving future predictions.
+MessMind is a new, self-contained web application. It does not replace the mess register or mess-card arrangements already in place; it sits alongside them and uses an attendance signal from them where one exists. Where none exists, it relies on student declarations and its own history.
 
-### 2.3 User Classes
-| Role | Description |
-| --- | --- |
-| Student | Marks per-meal intent, views own meal history |
-| Mess Staff | Views predicted attendance, recommended quantities, staged-cooking
-  prompts; logs waste after each meal |
-| Admin | Manages users, meal slots/menu, views system-wide analytics |
+The application has four layers. Keeping the prediction logic in its own layer is a deliberate choice (CON-4), so the optional machine-learning refinement can be added or removed without touching the API or the interface.
+
+![Layered architecture of the system](diagrams/architecture.png)
+
+*Figure 2.1 — Layered architecture of the system*
+
+### 2.2 Product Functions
+
+The system performs six functions, which match the six processes in the level 1 data flow diagrams of Section 5.1:
+
+- **Capture intent.** Store each student's declaration for each upcoming meal slot and remind those who have not declared.
+- **Predict attendance.** Combine declarations with per-student reliability parameters and apply a safety buffer.
+- **Recommend quantity.** Convert attendance into a quantity per dish and split it into a first batch and a held-back batch.
+- **Adjust the staged batch.** Compare live check-ins against the forecast during service and advise whether to cook the held-back batch.
+- **Log waste and recalibrate.** Record what was left over, derive what was served, and update reliability scores and consumption rates.
+- **Generate analytics.** Show aggregate trends in forecast accuracy and wastage to the mess administration.
+
+### 2.3 User Classes and Characteristics
+
+| User class | Characteristics | Frequency of use |
+| --- | --- | --- |
+| **Student** | Hostel resident using a personal phone. Motivated by convenience, not by any obligation to the system, so participation has to be optional and quick. | Up to 3 times a day, often none |
+| **Mess Staff** | Kitchen supervisor or counter attendant at a shared desktop. May have limited familiarity with web applications and little spare time during service. | Several times per meal |
+| **Admin** | Mess manager or warden. Configures slots, menus and parameters, and reviews performance. | Weekly |
+
+The Mess Staff characteristics drive NFR-6 directly. A dashboard that takes more than a couple of clicks will not be used during service, and an unused dashboard produces no feedback data.
 
 ### 2.4 Operating Environment
-Responsive web application, accessed via browser on desktop (mess staff counter system)
-and mobile (students). No native app required.
+
+The system is a responsive web application. Students use a mobile browser; mess staff use the counter desktop and admin uses an office desktop. Nothing needs to be installed. The server is a Node.js application exposing a REST API over HTTPS, backed by a PostgreSQL database. The prediction module runs in the application layer, with an optional regression refinement as a separate module. Deployment is on managed free-tier hosting, so no on-premise server is required.
 
 ### 2.5 Design and Implementation Constraints
-- Core prediction logic must be a deterministic, explainable formula (reliability-weighted
-  attendance estimate) so the system functions correctly even with no historical data
-  (cold start) and even if adoption is low.
-- An ML-based refinement (e.g. a regression model trained on day-of-week, menu, holiday/
-  exam flags, and prior attendance) is layered on top once sufficient meal history exists.
-  It never replaces the rule-based estimate as the sole mechanism — if the ML layer is
-  unavailable or under-trained, the system falls back to the rule-based estimate.
-- One-week development timeline; built as an incremental skeleton, not a finished product.
+
+| ID | Constraint |
+| --- | --- |
+| CON-1 | The system addresses a single core problem. Features belonging to adjacent problems are excluded, even where they would be easy to build. |
+| CON-2 | The core estimator is a deterministic arithmetic formula, not an opaque model, so any recommendation can be explained to the kitchen and reproduced by hand. |
+| CON-3 | The system must produce a usable recommendation on its first day, with no historical data. |
+| CON-4 | Any machine-learning component is a refinement layer above the deterministic estimator. The system stays fully functional with that layer absent. |
+| CON-5 | Leftover measurement must not need weighing equipment. A coarse four-point estimate is the finest granularity the kitchen can realistically supply. |
+| CON-6 | Development is limited to one week by a team of four, so the deliverable is a working skeleton rather than a production system. |
+| CON-7 | Version control is Git, with feature branches and pull requests per module, as required by the laboratory component. |
 
 ### 2.6 Assumptions and Dependencies
-- Students are willing to mark intent, but the system must not depend on 100% of students
-  doing so (see 2.5, cold-start fallback).
-- Mess staff can realistically provide a coarse, container-level waste estimate after each
-  meal, not an exact weight.
-- A simple check-in mechanism (manual tally or QR scan) is available during the meal
-  window for staged-cooking adjustment.
+
+| ID | Assumption | If it is false |
+| --- | --- | --- |
+| ASM-1 | Some students will declare intent, but participation will be partial and inconsistent. | No impact. Undeclared students are forecast from their baseline rate. |
+| ASM-2 | Mess staff can give a four-point leftover estimate per dish after each meal. | Consumption rates stop updating; attendance forecasting still works but quantity advice degrades. |
+| ASM-3 | A check-in signal, manual or card-based, is available during service. | Staged cooking cannot run; the system falls back to a single-batch recommendation. |
+| ASM-4 | Attendance follows stable weekly and menu-linked patterns. | Accuracy falls towards the flat baseline, which is still better than an unaided guess. |
+| ASM-5 | Students are not penalised for their declarations, and know it. | Declarations become strategic and reliability scores lose meaning. NFR-2 exists to prevent this. |
+| DEP-1 | Free-tier hosting and the PostgreSQL service remain available. | Local deployment for the demonstration. |
 
 ### 2.7 Feasibility Study
 
-| Type | Assessment |
+| Dimension | Assessment |
 | --- | --- |
-| **Technical** | Feasible with standard web technologies (React/Node/PostgreSQL or equivalent) already taught/used in coursework. The prediction engine is a weighted arithmetic formula, not a research-grade model, so it does not require specialised ML infrastructure. An optional lightweight regression layer (scikit-learn) is achievable within the timeline. |
-| **Economic** | Low cost. All planned infrastructure (Vercel, Render/Railway, Supabase) has a free tier sufficient for a semester project; no paid services are required. |
-| **Operational** | Operationally realistic: students already use phones daily, and mess staff already use a counter system. The only new habit required is a daily container-level estimate from staff, which is low-effort. Adoption risk is mitigated by the cold-start fallback (system works without full participation). |
-| **Legal** | No legal constraints. Data collected (meal intent, attendance, aggregate waste) is institutional and non-sensitive; per-student reliability scores are kept internal and never exposed (see NFR-1), avoiding privacy concerns. |
-| **Schedule** | Project is scoped to be buildable as a working skeleton by 2 Dec 2026 by a 4-person team, by deliberately excluding side features (ratings, payments, complaints) per the one-core-problem constraint. |
+| **Technical** | The stack is conventional and within the team's competence. The estimator is weighted arithmetic over a few database aggregates, not a research problem. |
+| **Economic** | All infrastructure is available on free tiers. No licensing, hardware or weighing equipment is needed. |
+| **Operational** | Students already carry phones and staff already use a counter desktop. The only new habit is a short leftover entry after each meal. Adoption risk is low because the forecast does not depend on student participation. |
+| **Legal** | Data held is institutional and low-sensitivity. Individual attendance is never shown to staff or admin, and declarations carry no financial consequence. |
+| **Schedule** | Achievable in one week because scope is fixed by CON-1 and the work splits into four independent modules, one per team member. |
 
-### 2.8 Process Model (SDLC)
-The project follows an **Agile/Scrum-style incremental model**, chosen over a strict
-Waterfall approach because requirements were refined iteratively through discussion
-(e.g. the staged-cooking and waste-logging decisions were only finalised after the
-initial brainstorm) and because the one-week timeline demands working increments rather
-than a single big-bang delivery.
+### 2.8 Process Model
 
-- The team works in short, informal sprints of 1–2 days, each ending with a usable
-  increment (e.g. auth + meal marking → prediction engine → staff dashboard → waste
-  logging + feedback loop).
-- Scope was deliberately fixed early (Section 1.2) to avoid uncontrolled scope creep
-  within such a short schedule — the Agile principle of responding to change is applied
-  to *how* features are refined, not to *what* the core problem is.
-- Git/GitHub is used as the configuration management tool, with feature branches and
-  pull requests per module, satisfying the version-control practice expected by the
-  course's laboratory component.
+The team follows an incremental model rather than a waterfall. The reason is that the requirements themselves changed during the first week: staged cooking and leftover logging were only added after the operational assumptions in Section 2.6 were checked, and a model that fixes everything before construction starts would not have allowed that.
 
----
-
-## 3. Specific Requirements
-
-### 3.1 Functional Requirements
-
-**Student**
-- **FR-1**: A student can mark intent (eating / not eating) for each upcoming meal slot.
-- **FR-2**: A student can view their own past attendance and marking history.
-- **FR-3**: A student receives a reminder notification before a meal slot closes for
-  marking, if they haven't marked yet.
-
-**Prediction Engine**
-- **FR-4**: The system computes expected attendance per meal slot as a sum over students
-  of: (declared-yes × personal reliability score) + (declared-no × personal flip rate) +
-  (not declared × personal baseline rate).
-- **FR-5**: Each student's reliability score, flip rate, and baseline rate are derived from
-  their own historical attendance and updated after each meal.
-- **FR-6**: The predicted attendance is adjusted upward by a configurable safety buffer
-  (risk-adjusted estimate) rather than used as a raw mean, since shortage is costlier than
-  waste.
-- **FR-7**: An optional ML-based model may produce a refined attendance estimate using
-  day-of-week, menu, and holiday/exam features; this estimate is shown alongside the
-  rule-based estimate and is used only once a minimum history threshold is met.
-
-**Mess Staff**
-- **FR-8**: Mess staff can view, per meal slot, the predicted attendance and a recommended
-  preparation quantity per dish (derived from predicted attendance × per-dish consumption
-  rate).
-- **FR-9**: At meal opening, the dashboard recommends a first-batch quantity (~75% of the
-  predicted total).
-- **FR-10**: During the first portion of the meal window, staff can log live check-in
-  counts; the dashboard uses the live arrival rate to recommend whether to prepare the
-  remaining batch.
-- **FR-11**: After a meal ends, staff log a leftover estimate per dish using a fixed scale
-  (Empty / Almost Empty / Half Left / Mostly Full).
-
-**Feedback Loop**
-- **FR-12**: Logged leftover estimates and actual check-in counts are used to recompute
-  per-dish consumption rates and per-student reliability scores after each meal.
-
-**Admin**
-- **FR-13**: Admin can manage student accounts, mess staff accounts, meal slots, and the
-  dish list per meal slot.
-- **FR-14**: Admin can view aggregate analytics: predicted vs. actual attendance trend,
-  waste trend per dish, over time.
-
-**Auth**
-- **FR-15**: The system supports three roles (Student, Mess Staff, Admin) with role-based
-  access control.
-
-### 3.2 Non-Functional Requirements
-- **NFR-1 (Privacy)**: Per-student reliability scores and marking history are internal to
-  the prediction model and are never shown to mess staff or admin at an individual level;
-  only aggregated predictions are surfaced.
-- **NFR-2 (No penalty)**: Marking "not eating" or not marking at all must never be tied to
-  any fee, refund, or penalty, to avoid incentivizing students to game their declared
-  intent.
-- **NFR-3 (Usability)**: Mess staff dashboard must be usable on a shared desktop with
-  minimal clicks, since it will be checked repeatedly during a live meal service.
-- **NFR-4 (Graceful degradation)**: The system must produce a reasonable prediction from
-  day one, before any student-specific history exists, using a flat baseline that narrows
-  to segment-level and then per-student estimates as data accumulates.
-- **NFR-5 (Performance)**: Dashboard predictions must update within a few seconds of a
-  staff action (e.g. logging a live check-in).
-- **NFR-6 (Availability)**: The system should be accessible during all meal service
-  windows; staged-cooking guidance is only useful if available in real time.
-
----
-
-## 4. External Interface Requirements
-
-### 4.1 User Interfaces
-- Student web view: meal marking, personal history.
-- Mess Staff web view: predicted attendance, recommended quantities, staged-cooking
-  prompt, waste logging form.
-- Admin web view: user/menu management, analytics dashboards.
-
-### 4.2 Software Interfaces
-- REST API between frontend and backend.
-- Relational database (PostgreSQL) for persistent storage.
-- Optional ML service/module invoked by the backend for the refined attendance estimate.
-
----
-
-## 5. System Models
-
-### 5.1 Context Diagram
-Shows MessMind as a single system boundary and its external actors.
-
-```mermaid
-graph LR
-    Student((Student))
-    Staff((Mess Staff))
-    Admin((Admin))
-
-    subgraph System["MessMind System"]
-        MM[MessMind]
-    end
-
-    Student -->|Meal intent| MM
-    MM -->|Attendance history, reminders| Student
-
-    Staff -->|Live check-ins, waste logs| MM
-    MM -->|Predicted attendance, recommended quantity, staged-cooking prompt| Staff
-
-    Admin -->|User/menu management| MM
-    MM -->|Analytics, reports| Admin
-```
-
-### 5.2 Data Flow Diagrams
-
-**Level 0 (Context-level DFD)**
-
-```mermaid
-flowchart LR
-    Student([Student]) -->|Meal intent| P0((0: MessMind))
-    Staff([Mess Staff]) -->|Live check-ins, waste logs| P0
-    Admin([Admin]) -->|Menu/user config| P0
-    P0 -->|Recommended quantity, staged prompt| Staff
-    P0 -->|History, reminders| Student
-    P0 -->|Analytics| Admin
-```
-
-**Level 1 (Process decomposition)**
-
-```mermaid
-flowchart TD
-    Student([Student]) -->|Intent| P1[1.0 Capture Meal Intent]
-    P1 -->|Stored marks| D1[(Meal Marks)]
-
-    D1 --> P2[2.0 Predict Attendance]
-    D4[(Student Reliability Scores)] --> P2
-    P2 -->|Predicted attendance + buffer| D2[(Predictions)]
-
-    D2 --> P3[3.0 Recommend Quantity]
-    D5[(Dish Consumption Rates)] --> P3
-    P3 -->|Recommended quantity| Staff([Mess Staff])
-
-    Staff -->|Live check-ins| P4[4.0 Adjust Staged Batch]
-    D2 --> P4
-    P4 -->|Cook/hold decision| Staff
-
-    Staff -->|Leftover level| P5[5.0 Log Waste & Update Model]
-    P5 --> D4
-    P5 --> D5
-    P5 --> D6[(Waste Logs)]
-
-    Admin([Admin]) -->|Reports request| P6[6.0 Generate Analytics]
-    D6 --> P6
-    D2 --> P6
-    P6 -->|Dashboards| Admin
-```
-
-### 5.3 Use Case Diagram
-
-```mermaid
-graph TB
-    Student((Student))
-    Staff((Mess Staff))
-    Admin((Admin))
-
-    Student --> UC1[Mark meal intent]
-    Student --> UC2[View own attendance history]
-
-    Staff --> UC3[View predicted attendance & quantities]
-    Staff --> UC4[Log live check-ins]
-    Staff --> UC5[Log leftover estimate]
-
-    Admin --> UC6[Manage users & menu]
-    Admin --> UC7[View analytics]
-
-    UC1 -.-> UC8[Prediction Engine]
-    UC4 -.-> UC8
-    UC5 -.-> UC8
-    UC8 -.-> UC3
-```
-
-### 5.4 Class Diagram
-
-```mermaid
-classDiagram
-    class User {
-        +int id
-        +string name
-        +string email
-        +string passwordHash
-        +Role role
-    }
-    class Student {
-        +float reliabilityScore
-        +float flipRate
-        +float baselineRate
-    }
-    class MessStaff
-    class Admin
-
-    class MealSlot {
-        +date date
-        +string type
-        +List~Dish~ dishes
-    }
-    class Dish {
-        +string name
-        +float consumptionRatePerHead
-    }
-    class MealMark {
-        +int studentId
-        +int mealSlotId
-        +bool intentToEat
-        +timestamp markedAt
-    }
-    class AttendancePrediction {
-        +int mealSlotId
-        +float ruleBasedEstimate
-        +float mlEstimate
-        +float recommendedQuantity
-    }
-    class WasteLog {
-        +int mealSlotId
-        +int dishId
-        +string leftoverLevel
-    }
-    class CheckIn {
-        +int mealSlotId
-        +timestamp time
-        +int count
-    }
-
-    User <|-- Student
-    User <|-- MessStaff
-    User <|-- Admin
-    Student "1" --> "many" MealMark
-    MealSlot "1" --> "many" MealMark
-    MealSlot "1" --> "many" Dish
-    MealSlot "1" --> "1" AttendancePrediction
-    MealSlot "1" --> "many" WasteLog
-    MealSlot "1" --> "many" CheckIn
-```
-
-### 5.5 Entity-Relationship Diagram
-
-```mermaid
-erDiagram
-    STUDENT ||--o{ MEAL_MARK : makes
-    MEAL_SLOT ||--o{ MEAL_MARK : receives
-    MEAL_SLOT ||--o{ DISH : serves
-    MEAL_SLOT ||--|| ATTENDANCE_PREDICTION : has
-    MEAL_SLOT ||--o{ WASTE_LOG : logs
-    MEAL_SLOT ||--o{ CHECK_IN : records
-    DISH ||--o{ WASTE_LOG : "logged for"
-
-    STUDENT {
-        int id PK
-        string name
-        float reliability_score
-        float flip_rate
-        float baseline_rate
-    }
-    MEAL_SLOT {
-        int id PK
-        date date
-        string type
-    }
-    DISH {
-        int id PK
-        int meal_slot_id FK
-        string name
-        float consumption_rate
-    }
-    MEAL_MARK {
-        int id PK
-        int student_id FK
-        int meal_slot_id FK
-        bool intent_to_eat
-    }
-    ATTENDANCE_PREDICTION {
-        int id PK
-        int meal_slot_id FK
-        float rule_based_estimate
-        float ml_estimate
-    }
-    WASTE_LOG {
-        int id PK
-        int meal_slot_id FK
-        int dish_id FK
-        string leftover_level
-    }
-    CHECK_IN {
-        int id PK
-        int meal_slot_id FK
-        timestamp time
-        int count
-    }
-```
-
-### 5.6 Sequence Diagram — Meal Marking to Quantity Recommendation
-
-```mermaid
-sequenceDiagram
-    participant S as Student
-    participant F as Frontend
-    participant B as Backend API
-    participant P as Prediction Engine
-    participant MS as Mess Staff
-
-    S->>F: Mark intent (eating/not eating)
-    F->>B: POST /meal-marks
-    B->>P: Request updated prediction for meal slot
-    P->>P: Compute reliability-weighted estimate
-    P->>P: Apply risk buffer
-    P-->>B: Predicted attendance + recommended quantity
-    B-->>F: Updated prediction
-    MS->>F: Open dashboard
-    F->>B: GET /predictions/:mealSlotId
-    B-->>F: Predicted attendance, quantity, staged-batch split
-    F-->>MS: Display recommendation
-```
-
-### 5.7 Activity Diagram — Staged Cooking
-
-```mermaid
-flowchart TD
-    A[Meal slot opens] --> B[Cook first batch: ~75% of prediction]
-    B --> C[Meal service begins]
-    C --> D[Staff log live check-ins]
-    D --> E{Arrival rate vs prediction}
-    E -->|On track or under| F[Hold remaining batch / cook partial]
-    E -->|Exceeding prediction| G[Cook remaining batch now]
-    F --> H[Meal service continues]
-    G --> H
-    H --> I[Meal ends]
-    I --> J[Staff log leftover level per dish]
-    J --> K[Feedback loop updates reliability scores & consumption rates]
-```
-
-### 5.8 State Diagram — Meal Slot Lifecycle
-
-```mermaid
-stateDiagram-v2
-    [*] --> Scheduled
-    Scheduled --> MarkingOpen: marking window starts
-    MarkingOpen --> MarkingClosed: marking window ends
-    MarkingClosed --> InService: meal slot opens
-    InService --> StagedDecisionMade: live check-ins logged
-    StagedDecisionMade --> Completed: meal slot ends
-    Completed --> WasteLogged: staff log leftovers
-    WasteLogged --> [*]
-```
-
----
-
-## 6. Future Enhancements
-- Richer ML model (e.g. time-series forecasting) once sufficient historical data exists.
-- QR-code based check-in instead of manual tally.
-- Per-dish popularity trends surfaced to admin analytics.
+Scope, however, was fixed early. Section 1.2 is treated as closed, so iteration applies to how a feature is built, not to which problem is being solved. Work is split into five short increments: schema and authentication; meal marking; the prediction engine; the staff dashboard and quantity recommendation; and waste logging with recalibration. Git is used throughout, with one feature branch per module and a pull request reviewed by another member before merge.
