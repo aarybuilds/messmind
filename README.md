@@ -70,6 +70,24 @@ Demo accounts (password `messmind123`):
 | Mess staff | staff1@iiitl.ac.in |
 | Student | lcb2025101@iiitl.ac.in |
 
+## How the forecast works
+
+For each meal, every student counts towards the forecast whether or not they marked:
+
+```
+E   = Σ r (said yes)  +  Σ f (said no)  +  Σ b (didn't say)
+E'  = E × (1 + β)          safety buffer, rounded up
+Q_d = E' × c_d             quantity per dish
+B_d = σ × Q_d              first batch, rest held back
+```
+
+`r`, `f` and `b` come from each student's own history once they have 15 meals, and from
+meal-type and day-of-week averages before that (SRS table 3.1). After every meal the
+profiles are updated from who actually came. With 90+ finished meals a small ridge
+regression is shown next to the formula; the kitchen plan always uses the formula.
+
+Code: `backend/src/services/estimator.js`, `parameters.js`, `forecast.js`, `recalibrate.js`, `refiner.js`.
+
 ## Status
 
 Requirements and design are final. Implementation in progress.
@@ -78,6 +96,6 @@ Requirements and design are final. Implementation in progress.
 | --- | --- |
 | 1. Schema and authentication | Done |
 | 2. Meal marking | Done |
-| 3. Prediction engine | Next |
-| 4. Staff dashboard and quantity recommendation | Planned |
+| 3. Prediction engine | Done |
+| 4. Staff dashboard and quantity recommendation | Next |
 | 5. Waste logging and recalibration | Planned |
