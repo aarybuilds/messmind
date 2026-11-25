@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import StudentHome from './pages/StudentHome'
+import StudentHistory from './pages/StudentHistory'
 import StaffDashboard from './pages/StaffDashboard'
 import AdminHome from './pages/AdminHome'
 import AdminUsers from './pages/AdminUsers'
@@ -30,6 +31,7 @@ function App() {
             }
           >
             <Route index element={<StudentHome />} />
+            <Route path="history" element={<StudentHistory />} />
           </Route>
 
           <Route

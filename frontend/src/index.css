@@ -148,3 +148,8 @@ label {
   border-radius: 6px;
   padding: 1.25rem;
 }
+
+button.small {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+}

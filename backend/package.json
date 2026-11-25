@@ -4,12 +4,13 @@
   "description": "REST API and prediction engine for MessMind",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --runInBand",
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "db:init": "node scripts/initDb.js",
     "db:seed": "node scripts/seed.js",
-    "db:reset": "npm run db:init && npm run db:seed"
+    "db:reset": "npm run db:init && npm run db:seed && npm run db:history",
+    "db:history": "node scripts/seedHistory.js"
   },
   "keywords": [],
   "author": "Aary Garge",
@@ -21,5 +22,15 @@
     "express": "^5.3.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "supertest": "^7.3.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": [
+      "./tests/setupEnv.js"
+    ]
   }
 }

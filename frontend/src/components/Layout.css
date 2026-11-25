@@ -90,7 +90,11 @@
 
   .topbar nav {
     order: 3;
-    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .user-box {
+    margin-left: auto;
   }
 
   .user-box span {

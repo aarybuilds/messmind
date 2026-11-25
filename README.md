@@ -55,6 +55,13 @@ npm install
 npm run dev
 ```
 
+Backend tests use a separate database:
+
+```bash
+createdb messmind_test
+cd backend && npm test
+```
+
 Demo accounts (password `messmind123`):
 
 | Role | Email |
@@ -66,3 +73,11 @@ Demo accounts (password `messmind123`):
 ## Status
 
 Requirements and design are final. Implementation in progress.
+
+| Increment | Status |
+| --- | --- |
+| 1. Schema and authentication | Done |
+| 2. Meal marking | Done |
+| 3. Prediction engine | Next |
+| 4. Staff dashboard and quantity recommendation | Planned |
+| 5. Waste logging and recalibration | Planned |
