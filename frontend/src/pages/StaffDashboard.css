@@ -1,0 +1,160 @@
+.meal-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.tab {
+  background: var(--paper);
+  color: var(--slate);
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.tab-day {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.tab.active {
+  background: var(--slate);
+  color: #fff;
+  border-color: var(--slate);
+}
+
+.tab.active .tab-day {
+  color: #cfd8d4;
+}
+
+.banner {
+  background: #eef1ee;
+  border-left: 4px solid var(--sage);
+  padding: 0.6rem 0.9rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.92rem;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.headline {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.headline .big {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--slate);
+}
+
+.dish-plan {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.dish-plan th {
+  text-align: left;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--slate);
+  color: #fff;
+  padding: 0.55rem 0.8rem;
+}
+
+.dish-plan td {
+  padding: 0.7rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.dish-plan .dish-name {
+  font-weight: 600;
+}
+
+.dish-plan .first {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--slate);
+}
+
+.dish-plan .held {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--brown);
+}
+
+.dish-plan .tag {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-left: 0.4rem;
+  color: var(--muted);
+}
+
+.breakdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.breakdown td {
+  padding: 0.4rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.93rem;
+}
+
+.breakdown .num {
+  text-align: right;
+}
+
+.breakdown .strong {
+  font-weight: 600;
+}
+
+.breakdown tr.total td {
+  border-top: 2px solid var(--slate);
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 820px) {
+  .plan-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 500px) {
+  .dish-plan th,
+  .dish-plan td {
+    padding: 0.5rem 0.4rem;
+  }
+
+  .dish-plan .first,
+  .dish-plan .held {
+    font-size: 1.1rem;
+  }
+}
