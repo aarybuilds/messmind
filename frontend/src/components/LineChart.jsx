@@ -5,9 +5,12 @@ const W = 760
 const H = 280
 const PAD = { top: 16, right: 110, bottom: 28, left: 44 }
 
-function niceMax(v) {
-  const step = v > 200 ? 50 : v > 50 ? 20 : 5
-  return Math.ceil(v / step) * step
+// a round tick step (1, 2, 5, 10, 20, 50, 100...) giving about 4 gridlines
+function niceStep(max) {
+  const raw = max / 4
+  const pow = 10 ** Math.floor(Math.log10(raw))
+  const m = raw / pow
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * pow
 }
 
 // series: [{ name, color, values: [number|null] }], labels: x labels (same length)
@@ -18,12 +21,14 @@ export default function LineChart({ title, series, labels, unit = '' }) {
 
   const n = labels.length
   const all = series.flatMap((s) => s.values).filter((v) => v !== null)
-  const yMax = niceMax(Math.max(1, ...all))
+  const step = niceStep(Math.max(1, ...all))
+  const yMax = Math.ceil(Math.max(1, ...all) / step) * step
   const plotW = W - PAD.left - PAD.right
   const plotH = H - PAD.top - PAD.bottom
   const x = (i) => PAD.left + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW)
   const y = (v) => PAD.top + plotH - (v / yMax) * plotH
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => Math.round(yMax * t))
+  const ticks = []
+  for (let t = 0; t <= yMax; t += step) ticks.push(t)
   const every = Math.max(1, Math.ceil(n / 8))
 
   function path(values) {
