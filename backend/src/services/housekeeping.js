@@ -17,6 +17,12 @@ async function runHousekeeping() {
     await pool.query("UPDATE meal_slots SET state = 'forecast' WHERE slot_id = $1", [slot_id]);
   }
 
+  // service has started (the forecast is always taken first)
+  await pool.query(
+    `UPDATE meal_slots SET state = 'in_service'
+     WHERE state = 'forecast' AND NOW() >= service_starts_at AND NOW() < service_ends_at`
+  );
+
   // meal is over: learn from it
   const { rows: finished } = await pool.query(
     `SELECT slot_id FROM meal_slots
