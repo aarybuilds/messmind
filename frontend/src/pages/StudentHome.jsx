@@ -20,6 +20,18 @@ export default function StudentHome() {
       .finally(() => setLoading(false))
   }, [])
 
+  // every minute: update countdowns and lock meals whose cut-off has passed
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMeals((current) =>
+        current.map((m) =>
+          m.is_open && new Date(m.marking_closes_at) <= Date.now() ? { ...m, is_open: false } : { ...m }
+        )
+      )
+    }, 60 * 1000)
+    return () => clearInterval(timer)
+  }, [])
+
   // eating = true / false, or null to clear
   async function handleChange(meal, eating) {
     setError('')
