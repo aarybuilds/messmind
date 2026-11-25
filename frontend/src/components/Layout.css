@@ -1,0 +1,103 @@
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0.75rem 2rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.brand-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: var(--slate);
+}
+
+.brand-role {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--brown);
+}
+
+.topbar nav {
+  display: flex;
+  gap: 1.25rem;
+  flex: 1;
+}
+
+.topbar nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.3rem 0;
+  border-bottom: 2px solid transparent;
+}
+
+.topbar nav a.active {
+  color: var(--slate);
+  border-bottom-color: var(--brown);
+}
+
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 0.95rem;
+}
+
+.user-box button {
+  padding: 0.35rem 0.8rem;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.footer {
+  text-align: center;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .topbar nav {
+    order: 3;
+    width: 100%;
+  }
+
+  .user-box span {
+    display: none;
+  }
+
+  .content {
+    padding: 1.25rem 1rem;
+  }
+}
