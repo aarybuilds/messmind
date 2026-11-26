@@ -1,27 +1,44 @@
 .login-page {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 42fr 58fr;
 }
 
+/* ---- left panel ---- */
+
 .login-side {
+  position: relative;
+  overflow: hidden;
   background: var(--slate);
   color: #e8e4da;
-  padding: 4rem 3rem;
+  padding: 4rem 3.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.login-side h1 {
-  color: #fff;
-  font-size: 4rem;
-  margin-bottom: 0.5rem;
+/* faint diagonal ruling, like lined paper held at an angle */
+.login-side::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.03) 0 1px,
+    transparent 1px 15px
+  );
+  pointer-events: none;
 }
 
-.login-side p {
-  max-width: 26rem;
-  font-size: 1.1rem;
+.side-inner {
+  position: relative;
+}
+
+.login-side h1 {
+  color: #fff;
+  font-size: clamp(3rem, 6vw, 4.6rem);
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
 }
 
 .kicker {
@@ -29,41 +46,182 @@
   letter-spacing: 0.18em;
   font-size: 0.8rem !important;
   color: var(--sage);
+  margin-bottom: 0.6rem;
+}
+
+.side-line {
+  max-width: 24rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #cdd4cf;
+  margin: 1.1rem 0 0;
+}
+
+.side-foot {
+  position: absolute;
+  left: 3.5rem;
+  bottom: 2.25rem;
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7f8c86;
+}
+
+.title-bar.light span:nth-child(1) {
+  background: #f1efe8;
+}
+
+/* ---- right panel ---- */
+
+.login-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
 }
 
 .login-card {
-  align-self: center;
-  justify-self: center;
-  width: min(380px, 90%);
+  width: min(440px, 100%);
   background: var(--paper);
   border: 1px solid var(--line);
-  padding: 2rem;
+  border-top: 4px solid var(--brown);
   border-radius: 6px;
+  padding: 2.5rem 2.25rem;
+  box-shadow: 0 10px 30px rgba(31, 47, 51, 0.06);
+}
+
+.login-card h2 {
+  font-size: 1.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.login-card label {
+  margin-top: 0.3rem;
 }
 
 .login-card input {
-  margin-bottom: 1rem;
+  margin-bottom: 1.1rem;
+  padding: 0.65rem 0.75rem;
 }
 
 .login-card button {
   width: 100%;
-  margin-top: 0.5rem;
+  margin-top: 0.6rem;
+  padding: 0.75rem 1.1rem;
+  font-size: 1.02rem;
+  transition: transform 0.12s ease, opacity 0.12s ease;
 }
 
-@media (max-width: 760px) {
+.login-card button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.login-card button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ---- entrance ---- */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.side-inner > *,
+.side-foot,
+.login-card {
+  animation: rise-in 0.5s ease-out backwards;
+}
+
+.kicker {
+  animation-delay: 0.05s;
+}
+
+.login-side h1 {
+  animation-delay: 0.12s;
+}
+
+.login-side .title-bar {
+  animation-delay: 0.19s;
+}
+
+.side-line {
+  animation-delay: 0.26s;
+}
+
+.side-foot {
+  animation-delay: 0.4s;
+}
+
+.login-card {
+  animation-delay: 0.18s;
+}
+
+.login-page .title-bar span {
+  transform-origin: left;
+  animation: bar-grow 0.45s ease-out backwards;
+}
+
+.login-page .title-bar span:nth-child(1) {
+  animation-delay: 0.3s;
+}
+
+.login-page .title-bar span:nth-child(2) {
+  animation-delay: 0.38s;
+}
+
+.login-page .title-bar span:nth-child(3) {
+  animation-delay: 0.46s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-inner > *,
+  .side-foot,
+  .login-card,
+  .login-page .title-bar span {
+    animation: none;
+  }
+}
+
+/* ---- small screens ---- */
+
+@media (max-width: 820px) {
   .login-page {
     grid-template-columns: 1fr;
   }
 
   .login-side {
-    padding: 2.5rem 1.5rem;
+    padding: 2.5rem 1.5rem 3.5rem;
+    justify-content: flex-start;
   }
 
-  .login-side h1 {
-    font-size: 2.8rem;
+  .side-line {
+    font-size: 1rem;
   }
 
-  .login-card {
-    margin: 2rem 0;
+  .side-foot {
+    position: static;
+    margin-top: 2rem;
+    left: auto;
+  }
+
+  .login-right {
+    padding: 1.5rem 1rem 2.5rem;
   }
 }

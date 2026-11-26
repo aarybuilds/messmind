@@ -28,44 +28,56 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-side">
-        <p className="kicker">Software Engineering · Group 24</p>
-        <h1>MessMind</h1>
-        <p>Smart Hostel Mess Attendance Forecasting and Food Waste Reduction System</p>
+        <div className="side-inner">
+          <p className="kicker">Software Engineering · Group 24</p>
+          <h1>MessMind</h1>
+          <div className="title-bar light">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <p className="side-line">
+            Smart Hostel Mess Attendance Forecasting and Food Waste Reduction System
+          </p>
+        </div>
+        <p className="side-foot">Indian Institute of Information Technology, Lucknow</p>
       </div>
 
-      <form className="login-card" onSubmit={handleSubmit}>
-        <h2>Log in</h2>
-        <div className="title-bar">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
+      <div className="login-right">
+        <form className="login-card" onSubmit={handleSubmit}>
+          <h2>Log in</h2>
+          <div className="title-bar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
 
-        <label htmlFor="email">Institute email</label>
-        <input
-          id="email"
-          type="email"
-          placeholder="lcb2025xxx@iiitl.ac.in"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+          <label htmlFor="email">Institute email</label>
+          <input
+            id="email"
+            type="email"
+            placeholder="lcb2025xxx@iiitl.ac.in"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-        {error && <p className="error">{error}</p>}
+          {error && <p className="error">{error}</p>}
 
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Logging in...' : 'Log in'}
-        </button>
-      </form>
+          <button type="submit" disabled={submitting}>
+            {submitting ? 'Logging in...' : 'Log in'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
