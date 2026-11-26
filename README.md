@@ -65,8 +65,8 @@ profiles are updated from who actually came. With 90+ finished meals a small rid
 regression is shown next to the formula; the kitchen plan always uses the formula.
 
 Because the first batch is only part of the total, the rest is held back until check-ins
-during service show whether it is needed. Over the demo month that left **298 kg, 246 L and
-about 4,100 pieces** of food uncooked that would otherwise have been prepared up front.
+during service show whether it is needed. Over the demo month that leaves roughly **300 kg,
+250 L and over 4,000 pieces** of food uncooked that would otherwise have been prepared up front.
 
 After each meal, staff log what is left in each container (Empty / Almost empty / Half left /
 Mostly full). The served amount per student is worked out from that, and each dish's
