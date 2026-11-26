@@ -82,6 +82,7 @@ The exclusions are intentional. Each is a separate problem, and including any of
 - **IEEE Std 830-1998** — IEEE Recommended Practice for Software Requirements Specifications. The structure of this document follows this standard.
 - **Course handout and presentation guidelines**, Software Engineering, IIIT Lucknow. Source of the single-problem constraint CON-1.
 - **Project repository** — source code, this document and the presentation deck, submitted as the Group 24 folder.
+- **Deployed system** — https://se-messmind.vercel.app. The web client is hosted on Vercel, the REST API on Render and the database on Neon, all on free tiers.
 
 ---
 
@@ -120,7 +121,7 @@ The Mess Staff characteristics drive NFR-6 directly. A dashboard that takes more
 
 ### 2.4 Operating Environment
 
-The system is a responsive web application. Students use a mobile browser; mess staff use the counter desktop and admin uses an office desktop. Nothing needs to be installed. The server is a Node.js application exposing a REST API over HTTPS, backed by a PostgreSQL database. The prediction module runs in the application layer, with an optional regression refinement as a separate module. Deployment is on managed free-tier hosting, so no on-premise server is required.
+The system is a responsive web application. Students use a mobile browser; mess staff use the counter desktop and admin uses an office desktop. Nothing needs to be installed. The server is a Node.js application exposing a REST API over HTTPS, backed by a PostgreSQL database. The prediction module runs in the application layer, with an optional regression refinement as a separate module. Deployment is on managed free-tier hosting, so no on-premise server is required. The working system is deployed and publicly reachable at https://se-messmind.vercel.app.
 
 ### 2.5 Design and Implementation Constraints
 
